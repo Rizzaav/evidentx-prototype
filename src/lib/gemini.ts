@@ -47,13 +47,13 @@ export function buildCandidateContext(studentId: string, opp?: Opportunity): str
   const skillsText = skills
     .map((sk) => {
       const sName = skillMap[sk.skillId]?.name || sk.skillId;
-      return `- ${sName}: Level ${sk.level}/5 (${sk.verified ? 'Cryptographically Verified' : 'Self-Reported'}) via ${sk.verifiedSources.join(', ') || 'Portfolio'}`;
+      return `- ${sName}: Proficiency ${sk.proficiency}/100 based on ${sk.evidenceIds.length} evidence artifact(s)`;
     })
     .join('\n');
 
   const evidenceText = evidenceList
     .map((ev) => {
-      return `- ${ev.title} (${ev.type.toUpperCase()}) | Issuer: ${ev.issuer} | SHA-256 Hash: ${ev.evidenceHash || 'Verified Seal'} | URL: ${ev.url || 'N/A'}\n  Summary: ${ev.description}`;
+      return `- ${ev.title} (${ev.type.toUpperCase()}) | Issuer: ${ev.issuer} | Verification: ${ev.verification} (Strength: ${ev.strength}/100) | SHA-256 Seal: ${ev.evidenceHash || 'Verified Seal'} | URL: ${ev.url || 'N/A'}\n  Summary: ${ev.description}`;
     })
     .join('\n');
 
@@ -64,11 +64,12 @@ export function buildCandidateContext(studentId: string, opp?: Opportunity): str
     matchText = `
 EVALUATION TARGET OPPORTUNITY:
 - Role: ${opp.title} at ${opp.organization} (${opp.type})
-- Location: ${opp.location} | Remote: ${opp.remote ? 'Yes' : 'No'}
-- Required Skills: ${opp.requiredSkills.map((s) => skillMap[s.skillId]?.name || s.skillId).join(', ')}
-- Algorithmic Match Score: ${match.overallScore}% (Skill Fit: ${match.skillScore}%, Evidence Quality: ${match.evidenceScore}%, Track Record: ${match.trackRecordScore}%)
-- Verified Strengths: ${match.breakdown.filter((b) => b.studentLevel >= b.requiredLevel).map((b) => b.skillName).join(', ') || 'None'}
-- Identified Skill Gaps: ${gap.gaps.map((g) => `${g.skillName} (Current: L${g.currentLevel}, Needed: L${g.requiredLevel})`).join(', ') || 'No critical gaps'}`;
+- Location: ${opp.location} | Duration: ${opp.duration}
+- Required Skills: ${opp.requiredSkills.map((id) => skillMap[id]?.name || id).join(', ')}
+- Algorithmic Match Score: ${match.matchScore}%
+- Verified Strengths: ${match.strengths.join(', ') || 'None'}
+- Identified Skill Gaps: ${match.gaps.join(', ') || 'No critical gaps'}
+- Actionable Development Recommendations: ${gap.recommendations.map((r) => `${r.skillName} (${r.priority} priority): ${r.recommendation}`).join('; ') || 'None'}`;
   }
 
   return `CANDIDATE DOSSIER:
