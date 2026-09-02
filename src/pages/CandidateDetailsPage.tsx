@@ -30,6 +30,7 @@ import { opportunityMap, studentMap, skillMap, evidenceMap, getStudentEvidence }
 import { matchStudentToOpportunity, skillGapAnalysis } from '@/lib/matchingEngine';
 import { useApplications } from '@/lib/applications';
 import { useNotifications } from '@/lib/notifications';
+import { CandidateAiDossier } from '@/components/CandidateAiDossier';
 import type { ApplicationStatus } from '@/types';
 
 export function CandidateDetailsPage({ opportunityId, studentId }: { opportunityId: string; studentId: string }) {
@@ -108,6 +109,11 @@ export function CandidateDetailsPage({ opportunityId, studentId }: { opportunity
             </div>
           </div>
         </div>
+      </div>
+
+      {/* AI Candidate Executive Dossier & Interactive Recruiter Interrogation */}
+      <div className="mt-6">
+        <CandidateAiDossier student={student} opportunity={opp} />
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
