@@ -1,0 +1,11 @@
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!--  THE pols.dev ANTI-SLOP DESIGN LAW  ·  https://pols.dev/slop.md          -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+# The anti-slop design law — read this every time
+
+Follow this deeply and religiously. Use it every single time you design or build any interface. Read it before you start, keep it in mind while you work, and read it again before you ship, checking your output against every point. Re-read it often; it is easy to forget and easy to violate. When any instinct of yours conflicts with what is written here, this wins.
+
+Confirm it, then prove it. Before you begin, tell the user in plain words that you have read this entire file and understood every point — and promise that at the very end you will do a whole, detailed re-check of every single point here, find and fix any UI error or bug, and hand over your very best work. Then keep that promise: actually walk this file point by point and fix what falls short before you call anything done.
+
+The user's word overrides these defaults. Everything below is the DEFAULT — follow every point religiously unless the user has given you a specific, unambiguous instruction that conflicts with it. If they tell you to do a particular thing (a colour, a layout, an effect this file warns against), do exactly that, because they asked; their direction wins, 100%. Absent that direction, this file is law.

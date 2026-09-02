@@ -1,0 +1,80 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: [
+          'system-ui',
+          '-apple-system',
+          'BlinkMacSystemFont',
+          '"Segoe UI"',
+          'Roboto',
+          '"Helvetica Neue"',
+          'Arial',
+          'sans-serif',
+        ],
+        display: [
+          '"Plus Jakarta Sans"',
+          'system-ui',
+          '-apple-system',
+          'sans-serif',
+        ],
+      },
+      colors: {
+        brand: {
+          50: '#f0f5ff',
+          100: '#e0ecff',
+          200: '#c5dcfe',
+          300: '#9cc3fd',
+          400: '#6ca1fa',
+          500: '#4680f4',
+          600: '#2d63e8',
+          700: '#224ec9',
+          800: '#1f40a1',
+          900: '#1d387f',
+          950: '#13224f',
+        },
+        accent: {
+          50: '#f2fbf7',
+          100: '#e1f6ec',
+          200: '#c3ecda',
+          300: '#94dcbf',
+          400: '#5dc39f',
+          500: '#38a881',
+          600: '#298968',
+          700: '#236e55',
+          800: '#1f5745',
+          900: '#1b483a',
+          950: '#0c2820',
+        },
+        ink: {
+          50: '#f8f9fb',
+          100: '#f0f2f6',
+          200: '#e2e5eb',
+          300: '#cbcfdb',
+          400: '#9da3b5',
+          500: '#757c91',
+          600: '#585e72',
+          700: '#454a5a',
+          800: '#343845',
+          900: '#1e2029',
+          950: '#111319',
+        },
+      },
+      boxShadow: {
+        // Tight, directional, self-colored elevation without diffuse symmetric blobs
+        card: '0 1px 3px 0 rgba(17, 19, 25, 0.04), 0 1px 2px -1px rgba(17, 19, 25, 0.04)',
+        soft: '0 2px 4px 0 rgba(17, 19, 25, 0.04), 0 4px 12px -2px rgba(17, 19, 25, 0.05)',
+        lift: '0 4px 8px -2px rgba(17, 19, 25, 0.06), 0 12px 24px -4px rgba(17, 19, 25, 0.08)',
+        panel: '0 0 0 1px rgba(17, 19, 25, 0.06), 0 8px 24px -4px rgba(17, 19, 25, 0.1)',
+      },
+      borderRadius: {
+        xl: '0.75rem',
+        '2xl': '1rem',
+        '3xl': '1.25rem',
+      },
+    },
+  },
+  plugins: [],
+};
