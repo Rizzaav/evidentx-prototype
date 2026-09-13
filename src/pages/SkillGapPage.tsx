@@ -1,5 +1,20 @@
 import { useState } from 'react';
-import { Target, CheckCircle2, AlertCircle, XCircle, Lightbulb, ArrowRight, TrendingUp } from 'lucide-react';
+import {
+  Target,
+  CheckCircle2,
+  AlertCircle,
+  XCircle,
+  Lightbulb,
+  ArrowRight,
+  TrendingUp,
+  BookOpen,
+  ExternalLink,
+  Sparkles,
+  FolderGit2,
+  GraduationCap,
+  ArrowUpRight,
+  Award,
+} from 'lucide-react';
 import {
   PageHeader,
   Card,
@@ -13,6 +28,7 @@ import {
 import { useDemoStudent } from '@/lib/useDemoStudent';
 import { skillGapAnalysis, rankOpportunitiesForStudent } from '@/lib/matchingEngine';
 import { OPPORTUNITIES, opportunityMap, skillMap } from '@/data/mockData';
+import { getLearningPathwayForSkill } from '@/data/learningRoadmaps';
 import { useRouter } from '@/lib/router';
 
 export function SkillGapPage({ opportunityId }: { opportunityId?: string }) {
@@ -142,32 +158,147 @@ export function SkillGapPage({ opportunityId }: { opportunityId?: string }) {
         </Card>
       </div>
 
-      {/* Development recommendations */}
-      <Section title="Recommended Development Areas">
+      {/* Development recommendations with Curated Courses & Capstone Actions */}
+      <Section title="Targeted Skill Bridging & Curated Coursework (Academia & Industry)">
         {gap.recommendations.length === 0 ? (
-          <EmptyState title="No gaps to close" description="You have strong coverage for this role." icon={<TrendingUp className="h-10 w-10" />} />
+          <EmptyState
+            title="No gaps to close"
+            description="You have strong coverage for this role."
+            icon={<TrendingUp className="h-10 w-10" />}
+          />
         ) : (
-          <div className="grid gap-4 md:grid-cols-2">
-            {gap.recommendations.map((r) => (
-              <Card key={r.skillId} className="p-5">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <span className={`inline-flex h-9 w-9 items-center justify-center rounded-lg ${r.status === 'missing' ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600'}`}>
-                      {r.status === 'missing' ? <XCircle className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
-                    </span>
-                    <div>
-                      <div className="font-semibold text-ink-900">{r.skillName}</div>
-                      <div className="text-xs text-ink-500 capitalize">{r.status} · {r.priority} priority</div>
+          <div className="grid gap-5 md:grid-cols-2">
+            {gap.recommendations.map((r) => {
+              const pathway = getLearningPathwayForSkill(r.skillId, r.skillName);
+              const isHigh = r.priority === 'high';
+
+              return (
+                <Card
+                  key={r.skillId}
+                  className="p-5 flex flex-col justify-between border border-ink-200/90 shadow-soft hover:shadow-card transition-all"
+                >
+                  <div className="space-y-4">
+                    {/* Header */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-2.5">
+                        <span
+                          className={`inline-flex h-9 w-9 items-center justify-center rounded-xl shrink-0 ${
+                            r.status === 'missing'
+                              ? 'bg-rose-50 text-rose-600 border border-rose-200'
+                              : 'bg-amber-50 text-amber-600 border border-amber-200'
+                          }`}
+                        >
+                          {r.status === 'missing' ? (
+                            <XCircle className="h-5 w-5" />
+                          ) : (
+                            <AlertCircle className="h-5 w-5" />
+                          )}
+                        </span>
+                        <div>
+                          <div className="font-display font-bold text-ink-900 leading-snug">
+                            {r.skillName}
+                          </div>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span
+                              className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                                isHigh
+                                  ? 'bg-rose-100 text-rose-800'
+                                  : 'bg-amber-100 text-amber-800'
+                              }`}
+                            >
+                              {r.status === 'missing' ? 'Missing Competency' : 'Needs Reinforcement'}
+                            </span>
+                            <span className="text-[11px] text-ink-400">·</span>
+                            <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                              +{pathway.matchScoreBoostEstimate}% Match Boost
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <SkillBadge name={r.skillName} />
+                    </div>
+
+                    {/* Diagnostic Summary */}
+                    <p className="text-xs text-ink-600 leading-relaxed bg-ink-50/70 p-2.5 rounded-xl border border-ink-100">
+                      {pathway.diagnosticSummary}
+                    </p>
+
+                    {/* Curated Courses (Academia / Industry) */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-ink-500">
+                        <GraduationCap className="h-3.5 w-3.5 text-brand-600" />
+                        <span>Curated Academic & Industry Courses</span>
+                      </div>
+                      <div className="space-y-1.5">
+                        {pathway.courses.map((course, idx) => (
+                          <a
+                            key={idx}
+                            href={course.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="group flex items-center justify-between p-2.5 rounded-xl border border-ink-200/80 bg-white hover:border-brand-300 hover:bg-brand-50/30 transition-all text-xs"
+                          >
+                            <div className="min-w-0 pr-2">
+                              <div className="font-semibold text-ink-900 group-hover:text-brand-700 flex items-center gap-1.5">
+                                <span className="truncate">{course.title}</span>
+                                <ArrowUpRight className="h-3 w-3 shrink-0 text-ink-400 group-hover:text-brand-600" />
+                              </div>
+                              <div className="text-[10px] text-ink-500 mt-0.5 flex items-center gap-2">
+                                <span className="font-medium text-ink-700">{course.provider}</span>
+                                <span>·</span>
+                                <span>{course.duration}</span>
+                              </div>
+                            </div>
+                            <span
+                              className={`shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                                course.badge === 'IIT Certified'
+                                  ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                                  : course.badge === 'Govt Accredited'
+                                  ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                                  : course.badge === '100% Free'
+                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                  : 'bg-brand-50 text-brand-700 border border-brand-200'
+                              }`}
+                            >
+                              {course.badge}
+                            </span>
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Capstone Proof Project */}
+                    <div className="p-3 bg-amber-50/60 rounded-xl border border-amber-200/80 space-y-1.5">
+                      <div className="flex items-center gap-1.5 text-[11px] font-bold text-amber-900">
+                        <FolderGit2 className="h-3.5 w-3.5 text-amber-700" />
+                        <span>Recommended Capstone Proof</span>
+                      </div>
+                      <div className="text-xs font-semibold text-ink-900">
+                        {pathway.capstoneProject.title}
+                      </div>
+                      <p className="text-[11px] text-ink-600 leading-relaxed">
+                        {pathway.capstoneProject.description}
+                      </p>
+                      <div className="text-[10px] text-amber-800 font-mono pt-1">
+                        📦 Deliverable: {pathway.capstoneProject.deliverable}
+                      </div>
                     </div>
                   </div>
-                  <SkillBadge name={r.skillName} />
-                </div>
-                <div className="mt-3 flex items-start gap-2 rounded-lg bg-ink-50 p-3">
-                  <Lightbulb className="h-4 w-4 flex-shrink-0 text-amber-500 mt-0.5" />
-                  <p className="text-sm text-ink-700">{r.recommendation}</p>
-                </div>
-              </Card>
-            ))}
+
+                  {/* Quick Action Button */}
+                  <div className="mt-4 pt-3 border-t border-ink-100">
+                    <button
+                      onClick={() => navigate('/student/evidence')}
+                      className="w-full btn-secondary text-xs py-2 inline-flex items-center justify-center gap-1.5 group"
+                    >
+                      <Sparkles className="h-3.5 w-3.5 text-brand-600" />
+                      <span>Upload Course Proof or Scan GitHub Repo</span>
+                      <ArrowRight className="h-3.5 w-3.5 text-ink-400 group-hover:translate-x-0.5 transition-transform" />
+                    </button>
+                  </div>
+                </Card>
+              );
+            })}
           </div>
         )}
       </Section>
