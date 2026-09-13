@@ -56,12 +56,12 @@ export function Chip({
   icon?: ReactNode;
 }) {
   const colors: Record<string, string> = {
-    gray: 'bg-ink-100 text-ink-700 border border-ink-200/80',
-    brand: 'bg-brand-50 text-brand-700 border border-brand-200/80',
-    accent: 'bg-accent-50 text-accent-700 border border-accent-200/80',
-    amber: 'bg-amber-50 text-amber-800 border border-amber-200/80',
-    rose: 'bg-rose-50 text-rose-700 border border-rose-200/80',
-    emerald: 'bg-accent-50 text-accent-800 border border-accent-200/80',
+    gray: 'bg-ink-100 dark:bg-ink-800 text-ink-700 dark:text-ink-200 border border-ink-200/80 dark:border-ink-700',
+    brand: 'bg-brand-50 dark:bg-brand-950/70 text-brand-700 dark:text-brand-300 border border-brand-200/80 dark:border-brand-800',
+    accent: 'bg-accent-50 dark:bg-accent-950/70 text-accent-700 dark:text-accent-300 border border-accent-200/80 dark:border-accent-800',
+    amber: 'bg-amber-50 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800',
+    rose: 'bg-rose-50 dark:bg-rose-950/70 text-rose-700 dark:text-rose-300 border border-rose-200/80 dark:border-rose-800',
+    emerald: 'bg-accent-50 dark:bg-accent-950/70 text-accent-800 dark:text-accent-300 border border-accent-200/80 dark:border-accent-800',
   };
   return (
     <span className={`chip ${colors[color]}`}>
@@ -83,12 +83,12 @@ export function SkillBadge({
 }) {
   const color =
     proficiency === undefined
-      ? 'bg-ink-100/80 text-ink-800 border-ink-200'
+      ? 'bg-ink-100/80 dark:bg-ink-800 text-ink-800 dark:text-ink-200 border-ink-200 dark:border-ink-700'
       : proficiency >= 70
-      ? 'bg-accent-50 text-accent-800 border-accent-200'
+      ? 'bg-accent-50 dark:bg-accent-950/70 text-accent-800 dark:text-accent-300 border-accent-200 dark:border-accent-800'
       : proficiency >= 40
-      ? 'bg-amber-50 text-amber-800 border-amber-200'
-      : 'bg-rose-50 text-rose-800 border-rose-200';
+      ? 'bg-amber-50 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+      : 'bg-rose-50 dark:bg-rose-950/70 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-800';
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 font-medium ${
@@ -96,7 +96,9 @@ export function SkillBadge({
       } ${color}`}
     >
       <span>{name}</span>
-      {proficiency !== undefined && <span className="text-ink-500 text-xs font-semibold">{proficiency}%</span>}
+      {proficiency !== undefined && (
+        <span className="text-ink-500 dark:text-ink-400 text-xs font-semibold">{proficiency}%</span>
+      )}
     </span>
   );
 }
@@ -125,7 +127,7 @@ export function ProgressBar({
   const grad = color ?? auto;
   return (
     <div className="flex items-center gap-2">
-      <div className={`flex-1 ${height} rounded-full bg-ink-100 overflow-hidden`}>
+      <div className={`flex-1 ${height} rounded-full bg-ink-100 dark:bg-ink-800 overflow-hidden`}>
         <div
           className={`progress-fill h-full rounded-full bg-gradient-to-r ${grad}`}
           style={
@@ -149,7 +151,9 @@ export function ProgressBar({
           }
         />
       </div>
-      {showLabel && <span className="text-xs font-bold text-ink-700 w-9 text-right">{Math.round(pct)}%</span>}
+      {showLabel && (
+        <span className="text-xs font-bold text-ink-700 dark:text-ink-300 w-9 text-right">{Math.round(pct)}%</span>
+      )}
     </div>
   );
 }
@@ -167,11 +171,11 @@ export function MatchRing({
   const radius = size / 2 - 10;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (score / 100) * circumference;
-  const color = score >= 75 ? '#298968' : score >= 50 ? '#d97706' : '#e11d48';
+  const color = score >= 75 ? '#38a881' : score >= 50 ? '#d97706' : '#e11d48';
   return (
     <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#e2e5eb" strokeWidth="7" />
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="currentColor" className="text-ink-200 dark:text-ink-800" strokeWidth="7" />
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -186,10 +190,10 @@ export function MatchRing({
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-        <span className="text-2xl font-bold tracking-tight text-ink-900">
+        <span className="text-2xl font-bold tracking-tight text-ink-900 dark:text-white">
           {score}%
         </span>
-        <span className="text-[10px] font-bold uppercase tracking-wider text-ink-500">{label}</span>
+        <span className="text-[10px] font-bold uppercase tracking-wider text-ink-500 dark:text-ink-400">{label}</span>
       </div>
     </div>
   );
@@ -275,9 +279,9 @@ export function EmptyState({
 }) {
   return (
     <div className="card p-10 text-center flex flex-col items-center">
-      {icon && <div className="mb-3 text-ink-400">{icon}</div>}
-      <h3 className="font-semibold text-ink-900">{title}</h3>
-      {description && <p className="text-sm text-ink-500 mt-1 max-w-sm">{description}</p>}
+      {icon && <div className="mb-3 text-ink-400 dark:text-ink-500">{icon}</div>}
+      <h3 className="font-semibold text-ink-900 dark:text-white">{title}</h3>
+      {description && <p className="text-sm text-ink-500 dark:text-ink-400 mt-1 max-w-sm">{description}</p>}
       {action && <div className="mt-4">{action}</div>}
     </div>
   );
@@ -298,20 +302,20 @@ export function StatCard({
   sub?: string;
 }) {
   const iconColors: Record<string, string> = {
-    brand: 'text-brand-600',
-    accent: 'text-accent-600',
-    amber: 'text-amber-600',
-    rose: 'text-rose-600',
-    emerald: 'text-accent-700',
+    brand: 'text-brand-600 dark:text-brand-400',
+    accent: 'text-accent-600 dark:text-accent-400',
+    amber: 'text-amber-600 dark:text-amber-400',
+    rose: 'text-rose-600 dark:text-rose-400',
+    emerald: 'text-accent-700 dark:text-accent-300',
   };
   return (
     <div className="card p-5">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-bold uppercase tracking-wider text-ink-500">{label}</span>
+        <span className="text-xs font-bold uppercase tracking-wider text-ink-500 dark:text-ink-400">{label}</span>
         {icon && <span className={iconColors[color]}>{icon}</span>}
       </div>
-      <div className="mt-2 text-2xl font-bold tracking-tight text-ink-900">{value}</div>
-      {sub && <div className="text-xs text-ink-500 mt-0.5">{sub}</div>}
+      <div className="mt-2 text-2xl font-bold tracking-tight text-ink-900 dark:text-white">{value}</div>
+      {sub && <div className="text-xs text-ink-500 dark:text-ink-400 mt-0.5">{sub}</div>}
     </div>
   );
 }

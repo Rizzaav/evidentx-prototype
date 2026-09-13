@@ -23,8 +23,8 @@ body {
 }
 
 .dark body {
-  background-color: #0b0d14;
-  color: #f0f2f6;
+  background-color: #0d1117;
+  color: #c9d1d9;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -34,7 +34,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
-  color: #f8f9fb;
+  color: #f0f6fc;
 }
 
 /* Subtle, clean scrollbar */
@@ -43,13 +43,13 @@ h1, h2, h3, h4, h5, h6 {
 ::-webkit-scrollbar-thumb { background: #cbd2e0; border-radius: 999px; }
 ::-webkit-scrollbar-thumb:hover { background: #9da3b5; }
 
-.dark ::-webkit-scrollbar-thumb { background: #343845; }
-.dark ::-webkit-scrollbar-thumb:hover { background: #454a5a; }
+.dark ::-webkit-scrollbar-thumb { background: #30363d; }
+.dark ::-webkit-scrollbar-thumb:hover { background: #484f58; }
 
 @layer components {
   /* Self-colored border with low-offset directional elevation */
   .card {
-    @apply bg-white dark:bg-[#12151f] rounded-2xl border border-ink-200/80 dark:border-ink-800/80 shadow-card transition duration-150 text-ink-900 dark:text-ink-100;
+    @apply bg-white dark:bg-[#161b22] rounded-2xl border border-ink-200/80 dark:border-[#30363d] shadow-card transition duration-150 text-ink-900 dark:text-ink-100;
   }
   
   .btn {
@@ -61,11 +61,11 @@ h1, h2, h3, h4, h5, h6 {
   }
   
   .btn-secondary {
-    @apply btn bg-white dark:bg-[#161a27] text-ink-800 dark:text-ink-200 border border-ink-200 dark:border-ink-700/80 hover:bg-ink-50 dark:hover:bg-ink-800/60 hover:border-ink-300 dark:hover:border-ink-600 px-4 py-2.5 text-sm shadow-card;
+    @apply btn bg-white dark:bg-[#21262d] text-ink-800 dark:text-[#e6edf3] border border-ink-200 dark:border-[#30363d] hover:bg-ink-50 dark:hover:bg-[#30363d] hover:border-ink-300 dark:hover:border-[#484f58] px-4 py-2.5 text-sm shadow-card;
   }
   
   .btn-ghost {
-    @apply btn text-ink-700 dark:text-ink-300 hover:bg-ink-100 dark:hover:bg-ink-800/70 px-3 py-2 text-sm;
+    @apply btn text-ink-700 dark:text-[#c9d1d9] hover:bg-ink-100 dark:hover:bg-[#21262d] px-3 py-2 text-sm;
   }
   
   .chip {
@@ -73,16 +73,114 @@ h1, h2, h3, h4, h5, h6 {
   }
   
   .input {
-    @apply w-full rounded-xl border border-ink-200 dark:border-ink-700/80 bg-white dark:bg-[#12151f] px-3.5 py-2.5 text-sm text-ink-900 dark:text-ink-100 placeholder:text-ink-400 dark:placeholder:text-ink-500 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition shadow-card;
+    @apply w-full rounded-xl border border-ink-200 dark:border-[#30363d] bg-white dark:bg-[#0d1117] px-3.5 py-2.5 text-sm text-ink-900 dark:text-[#f0f6fc] placeholder:text-ink-400 dark:placeholder:text-[#6e7681] focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition shadow-card;
   }
   
   .label {
-    @apply block text-xs font-bold uppercase tracking-wider text-ink-700 dark:text-ink-300 mb-1.5;
+    @apply block text-xs font-bold uppercase tracking-wider text-ink-700 dark:text-[#c9d1d9] mb-1.5;
   }
   
   .section-title {
-    @apply text-xs font-bold uppercase tracking-wider text-ink-500 dark:text-ink-400;
+    @apply text-xs font-bold uppercase tracking-wider text-ink-500 dark:text-[#8b949e];
   }
+}
+
+/* ============================================================
+   Dark Mode Comfort Overrides
+   Prevents harsh white glare boxes, restores readable contrast
+   ============================================================ */
+
+.dark .card,
+.dark div.card {
+  background-color: #161b22;
+  border-color: #30363d;
+  color: #f0f6fc;
+}
+
+/* Modal and dialog background adaptation */
+.dark .bg-white:not([data-keep-white]) {
+  background-color: #161b22;
+  border-color: #30363d;
+  color: #f0f6fc;
+}
+
+.dark .bg-ink-50,
+.dark .bg-ink-50\/50,
+.dark .bg-ink-50\/70 {
+  background-color: #0d1117 !important;
+  border-color: #21262d !important;
+}
+
+.dark .bg-ink-100 {
+  background-color: #21262d !important;
+  border-color: #30363d !important;
+}
+
+/* Text hierarchy contrast in dark mode */
+.dark .text-ink-900,
+.dark .text-ink-800 {
+  color: #f0f6fc !important;
+}
+
+.dark .text-ink-700,
+.dark .text-ink-600 {
+  color: #c9d1d9 !important;
+}
+
+.dark .text-ink-500 {
+  color: #8b949e !important;
+}
+
+.dark .text-ink-400 {
+  color: #6e7681 !important;
+}
+
+.dark .border-ink-200,
+.dark .border-ink-100 {
+  border-color: #30363d !important;
+}
+
+/* Select dropdown options */
+.dark select option {
+  background-color: #161b22;
+  color: #f0f6fc;
+}
+
+/* Status & Alert Banners (Gentle translucent dark tints instead of piercing pastel whites) */
+.dark .bg-emerald-50 {
+  background-color: rgba(16, 185, 129, 0.12) !important;
+  border-color: rgba(16, 185, 129, 0.28) !important;
+  color: #6ee7b7 !important;
+}
+
+.dark .bg-rose-50 {
+  background-color: rgba(244, 63, 94, 0.12) !important;
+  border-color: rgba(244, 63, 94, 0.28) !important;
+  color: #fda4af !important;
+}
+
+.dark .bg-amber-50 {
+  background-color: rgba(245, 158, 11, 0.12) !important;
+  border-color: rgba(245, 158, 11, 0.28) !important;
+  color: #fde68a !important;
+}
+
+.dark .bg-brand-50 {
+  background-color: rgba(45, 99, 232, 0.12) !important;
+  border-color: rgba(45, 99, 232, 0.28) !important;
+  color: #93c5fd !important;
+}
+
+.dark .bg-teal-50 {
+  background-color: rgba(20, 184, 166, 0.12) !important;
+  border-color: rgba(20, 184, 166, 0.28) !important;
+  color: #5eead4 !important;
+}
+
+.dark .bg-indigo-50 {
+  background-color: rgba(99, 102, 241, 0.12) !important;
+  border-color: rgba(99, 102, 241, 0.28) !important;
+  color: #a5b4fc !important;
 }
 
 /* Progress fill */
@@ -90,3 +188,4 @@ h1, h2, h3, h4, h5, h6 {
   background-image: linear-gradient(90deg, var(--from), var(--to));
   transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
