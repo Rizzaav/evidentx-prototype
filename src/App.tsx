@@ -58,9 +58,6 @@ const TeamBuilderPage = lazy(() =>
 const CreateTeamPage = lazy(() =>
   import('@/pages/CreateTeamPage').then((m) => ({ default: m.CreateTeamPage }))
 );
-const CreateStudentPage = lazy(() =>
-  import('@/pages/CreateStudentPage').then((m) => ({ default: m.CreateStudentPage }))
-);
 const PublicPassportPage = lazy(() =>
   import('@/pages/PublicPassportPage').then((m) => ({ default: m.PublicPassportPage }))
 );
@@ -188,8 +185,8 @@ function AppRouter() {
 function renderStudent(seg: string[]): React.ReactNode {
   // /student/dashboard
   if (seg[1] === 'dashboard' || !seg[1]) return <StudentDashboardPage />;
-  // /student/create
-  if (seg[1] === 'create') return <CreateStudentPage />;
+  // /student/create -> fallback / redirect to passport
+  if (seg[1] === 'create') return <SkillPassportPage />;
   // /student/passport
   if (seg[1] === 'passport') return <SkillPassportPage />;
   // /student/evidence

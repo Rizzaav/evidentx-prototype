@@ -10,7 +10,6 @@ import {
   GraduationCap,
   Menu,
   X,
-  UserPlus,
   Info,
   ChevronRight,
   ArrowLeftRight,
@@ -30,7 +29,6 @@ type NavItem = { label: string; path: string; icon: ReactNode };
 
 const STUDENT_NAV: NavItem[] = [
   { label: 'Dashboard', path: '/student/dashboard', icon: <LayoutDashboard className="h-4 w-4" /> },
-  { label: 'Create Student Profile', path: '/student/create', icon: <UserPlus className="h-4 w-4" /> },
   { label: 'Skill Passport', path: '/student/passport', icon: <GraduationCap className="h-4 w-4" /> },
   { label: 'Evidence & Credentials', path: '/student/evidence', icon: <FolderGit2 className="h-4 w-4" /> },
   { label: 'Internship Discovery', path: '/student/internships', icon: <Compass className="h-4 w-4" /> },
