@@ -216,16 +216,51 @@ export function EvidencePage() {
       const result = await scanGithubRepository(githubUrl);
       setGithubScanData(result);
 
-      setTitle(`GitHub: ${result.repoName}`);
+      if (result.isForkWithoutContributions) {
+        setTitle(`Fork: ${result.repoName}`);
+        setType('project');
+        setIssuer(`GitHub / ${result.owner} (Fork of ${result.parentRepo || 'upstream'})`);
+        setUrl(result.url);
+        setDescription(
+          `Forked from ${result.parentRepo || 'upstream'}. 0 verified commits authored by ${result.owner}. Excluded from Skill Passport credit.`
+        );
+        setScore('Unmodified Fork (0 Commits)');
+        setVerification('self-reported');
+        setVerificationMethod('GitHub Integrity Auditor (0 Author Commits)');
+        setSelectedSkills([]);
+        setSkillStrengths({});
+        setAiAuditNote(result.statusMessage);
+        // Do not redirect to form tab so the candidate clearly sees the integrity alert
+        return;
+      }
+
+      const isContributor = result.contributionType === 'open_source_contributor';
+      setTitle(isContributor ? `Open Source: ${result.repoName} (Contributor)` : `GitHub: ${result.repoName}`);
       setType('project');
-      setIssuer(`GitHub / ${result.owner}`);
+      setIssuer(
+        isContributor
+          ? `GitHub / ${result.owner} (Fork of ${result.parentRepo || 'upstream'})`
+          : `GitHub / ${result.owner}`
+      );
       setUrl(result.url);
       setDescription(
         `${result.description} (Languages: ${result.languages.map((l) => `${l.language} ${l.percentage}%`).join(', ')} · ${result.commitCountSummary})`
       );
-      setScore(result.isRealApiResult ? `Verified GitHub Repo (${result.stars} ★)` : 'Production Codebase');
+      setScore(
+        isContributor
+          ? `Open Source Contributor (${result.authorCommitCount}+ commits)`
+          : result.isRealApiResult
+          ? `Verified GitHub Repo (${result.stars} ★)`
+          : 'Production Codebase'
+      );
       setVerification('verified');
-      setVerificationMethod(result.isRealApiResult ? 'Live GitHub REST API v3' : 'Repository Structure Analyzer');
+      setVerificationMethod(
+        isContributor
+          ? 'GitHub Verified Author Commits'
+          : result.isRealApiResult
+          ? 'Live GitHub REST API v3'
+          : 'Repository Structure Analyzer'
+      );
 
       setSelectedSkills(result.detectedSkills);
       setSkillStrengths(result.skillStrengths);
@@ -460,7 +495,17 @@ export function EvidencePage() {
                       {e.score && (
                         <>
                           <span>·</span>
-                          <Chip color="brand">{e.score}</Chip>
+                          <Chip
+                            color={
+                              e.score.toLowerCase().includes('unmodified')
+                                ? 'rose'
+                                : e.score.toLowerCase().includes('contributor')
+                                ? 'accent'
+                                : 'brand'
+                            }
+                          >
+                            {e.score}
+                          </Chip>
                         </>
                       )}
                     </div>
@@ -628,10 +673,32 @@ export function EvidencePage() {
 
                 {/* Live Scan Results Card */}
                 {githubScanData && (
-                  <div className="mt-3 p-3 bg-white rounded-xl border border-emerald-200 space-y-2 animate-fade-in text-xs">
+                  <div
+                    className={`mt-3 p-3.5 rounded-xl border space-y-2.5 animate-fade-in text-xs ${
+                      githubScanData.isForkWithoutContributions
+                        ? 'bg-rose-50/60 border-rose-300'
+                        : githubScanData.contributionType === 'open_source_contributor'
+                        ? 'bg-teal-50/50 border-teal-200'
+                        : 'bg-white border-emerald-200'
+                    }`}
+                  >
                     <div className="flex items-center justify-between font-bold text-ink-900">
-                      <span>{githubScanData.fullName}</span>
-                      <div className="flex items-center gap-2 text-ink-600">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-mono">{githubScanData.fullName}</span>
+                        {githubScanData.isFork && (
+                          <span
+                            className={`text-[10px] px-1.5 py-0.5 rounded font-medium inline-flex items-center gap-1 ${
+                              githubScanData.isForkWithoutContributions
+                                ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                                : 'bg-teal-100 text-teal-800 border border-teal-200'
+                            }`}
+                          >
+                            <GitFork className="h-2.5 w-2.5" />
+                            <span>Fork of {githubScanData.parentRepo || 'upstream'}</span>
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 text-ink-600 shrink-0">
                         <span className="inline-flex items-center gap-0.5">
                           <Star className="h-3 w-3 text-amber-500 fill-amber-500" /> {githubScanData.stars}
                         </span>
@@ -640,7 +707,35 @@ export function EvidencePage() {
                         </span>
                       </div>
                     </div>
-                    <div className="text-[11px] text-ink-600">{githubScanData.commitCountSummary}</div>
+
+                    {/* Specific Fork Integrity Alert or Contributor Badge */}
+                    {githubScanData.isForkWithoutContributions ? (
+                      <div className="p-3 bg-white rounded-xl border border-rose-200 space-y-1.5 text-rose-950 shadow-2xs">
+                        <div className="flex items-center gap-1.5 font-bold text-rose-800">
+                          <AlertTriangle className="h-4 w-4 text-rose-600 shrink-0" />
+                          <span>Integrity Protection: 0 Author Commits</span>
+                        </div>
+                        <p className="text-rose-800 text-[11px] leading-relaxed">
+                          This repository is an unmodified fork of{' '}
+                          <strong>{githubScanData.parentRepo || 'the upstream codebase'}</strong> with{' '}
+                          <strong>0 commits authored by {githubScanData.owner}</strong>.
+                        </p>
+                        <div className="text-[10px] text-rose-700 bg-rose-50 p-2 rounded-lg leading-relaxed border border-rose-100">
+                          🛡️ <strong>EvidentX Proof-of-Skill Policy:</strong> Simply forking another developer&apos;s project does not prove personal competency. <strong>0 skills have been awarded.</strong> To earn verified credit, push original code contributions to this repository.
+                        </div>
+                      </div>
+                    ) : githubScanData.contributionType === 'open_source_contributor' ? (
+                      <div className="p-2.5 bg-white rounded-xl border border-teal-200 text-[11px] text-teal-900 flex items-start gap-2 shadow-2xs">
+                        <Sparkles className="h-4 w-4 text-teal-600 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-bold text-teal-800">Verified Open Source Contributor:</span>{' '}
+                          Found {githubScanData.authorCommitCount}+ verified commit(s) authored by{' '}
+                          <strong>{githubScanData.owner}</strong> to {githubScanData.repoName}. Skills attributed proportionally.
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-[11px] text-ink-600">{githubScanData.commitCountSummary}</div>
+                    )}
 
                     {/* Language breakdown */}
                     {githubScanData.languages.length > 0 && (
@@ -650,13 +745,34 @@ export function EvidencePage() {
                         </div>
                         <div className="flex flex-wrap gap-1.5">
                           {githubScanData.languages.map((l) => (
-                            <span key={l.language} className="px-2 py-0.5 rounded bg-brand-50 text-brand-700 font-semibold text-[11px]">
+                            <span
+                              key={l.language}
+                              className="px-2 py-0.5 rounded bg-brand-50 text-brand-700 font-semibold text-[11px]"
+                            >
                               {l.language} ({l.percentage}%)
                             </span>
                           ))}
                         </div>
                       </div>
                     )}
+
+                    {/* Action button based on fork status */}
+                    <div className="pt-2">
+                      {githubScanData.isForkWithoutContributions ? (
+                        <div className="text-center py-1 text-[11px] font-medium text-rose-600">
+                          ⚠️ Cannot be added as verified proof (0 author commits detected)
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setModalTab('form')}
+                          className="btn-primary w-full text-xs py-2 inline-flex items-center justify-center gap-1.5"
+                        >
+                          <span>Proceed to Review Form ({githubScanData.detectedSkills.length} Skills)</span>
+                          <span>→</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>

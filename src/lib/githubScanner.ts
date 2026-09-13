@@ -25,6 +25,12 @@ export interface GithubScanResult {
   license?: string;
   isRealApiResult: boolean;
   statusMessage: string;
+  // Fork & Contribution Integrity Verification
+  isFork: boolean;
+  parentRepo?: string;
+  authorCommitCount: number;
+  isForkWithoutContributions: boolean;
+  contributionType: 'original' | 'open_source_contributor' | 'unmodified_fork';
 }
 
 // Map GitHub language names and keywords to EvidentX Skill IDs
@@ -199,23 +205,119 @@ export async function scanGithubRepository(rawInput: string): Promise<GithubScan
     // Gracefully handle secondary language breakdown fetch failure
   }
 
-  // Step 5: Fetch Recent Commits
+  // Step 5: Fork Detection & Author Commit Verification
+  const isFork = Boolean(repoData.fork);
+  const parentRepo: string | undefined = repoData.parent?.full_name || repoData.source?.full_name;
+  let authorCommitCount = 0;
   let commitSummary = 'Verified commit activity';
-  try {
-    const commitRes = await fetch(
-      `https://api.github.com/repos/${owner}/${repo}/commits?per_page=5`,
-      { headers: authHeaders }
-    );
-    if (commitRes.ok) {
-      const commits = await commitRes.json();
-      if (Array.isArray(commits) && commits.length > 0) {
-        commitSummary = `${commits.length}+ recent verified commits by ${
-          commits[0]?.commit?.author?.name || owner
-        }`;
+
+  if (isFork) {
+    // For forked repos, strictly verify whether this specific user authored commits
+    try {
+      const authorCommitRes = await fetch(
+        `https://api.github.com/repos/${owner}/${repo}/commits?author=${owner}&per_page=10`,
+        { headers: authHeaders }
+      );
+      if (authorCommitRes.ok) {
+        const authorCommits = await authorCommitRes.json();
+        if (Array.isArray(authorCommits)) {
+          authorCommitCount = authorCommits.length;
+        }
+      }
+    } catch {
+      // Gracefully handle commit author check failure
+    }
+
+    // Fallback: If ?author query returned 0, inspect recent commits directly to catch username/login matching
+    if (authorCommitCount === 0) {
+      try {
+        const recentRes = await fetch(
+          `https://api.github.com/repos/${owner}/${repo}/commits?per_page=10`,
+          { headers: authHeaders }
+        );
+        if (recentRes.ok) {
+          const recentList = await recentRes.json();
+          if (Array.isArray(recentList)) {
+            const lowOwner = owner.toLowerCase();
+            const matching = recentList.filter(
+              (c: any) =>
+                c.author?.login?.toLowerCase() === lowOwner ||
+                c.committer?.login?.toLowerCase() === lowOwner ||
+                c.commit?.author?.name?.toLowerCase() === lowOwner
+            );
+            if (matching.length > 0) {
+              authorCommitCount = matching.length;
+            }
+          }
+        }
+      } catch {
+        // Ignore fallback error
       }
     }
-  } catch {
-    // Gracefully handle secondary commit fetch failure
+
+    if (authorCommitCount === 0) {
+
+      commitSummary = `0 commits by ${owner} (Unmodified fork of ${parentRepo || 'upstream repository'})`;
+    } else {
+      commitSummary = `${authorCommitCount}+ verified open source contribution(s) by ${owner}`;
+    }
+  } else {
+    // For original repos, fetch recent commits
+    try {
+      const commitRes = await fetch(
+        `https://api.github.com/repos/${owner}/${repo}/commits?per_page=5`,
+        { headers: authHeaders }
+      );
+      if (commitRes.ok) {
+        const commits = await commitRes.json();
+        if (Array.isArray(commits) && commits.length > 0) {
+          authorCommitCount = commits.length;
+          commitSummary = `${commits.length}+ recent verified commits by ${
+            commits[0]?.commit?.author?.name || owner
+          }`;
+        }
+      }
+    } catch {
+      // Gracefully handle secondary commit fetch failure
+    }
+  }
+
+  const isForkWithoutContributions = isFork && authorCommitCount === 0;
+  const contributionType: 'original' | 'open_source_contributor' | 'unmodified_fork' =
+    !isFork
+      ? 'original'
+      : isForkWithoutContributions
+      ? 'unmodified_fork'
+      : 'open_source_contributor';
+
+  // If this is an unmodified fork, IMMEDIATELY return with 0 skills to prevent unearned credit
+  if (isForkWithoutContributions) {
+    return {
+      repoName: repoData.name,
+      fullName: repoData.full_name,
+      owner: repoData.owner?.login || owner,
+      url: repoData.html_url || repoUrl,
+      description:
+        repoData.description || `Forked repository from ${parentRepo || 'upstream repository'}.`,
+      stars: repoData.stargazers_count ?? 0,
+      forks: repoData.forks_count ?? 0,
+      defaultBranch: repoData.default_branch || 'main',
+      pushedAt: repoData.pushed_at || new Date().toISOString(),
+      languages,
+      topics: repoData.topics || [],
+      detectedSkills: [], // ZERO skills awarded!
+      skillStrengths: {},
+      meanStrength: 0,
+      commitCountSummary: commitSummary,
+      license: repoData.license?.spdx_id || repoData.license?.name,
+      isRealApiResult: true,
+      statusMessage: `🚨 Unmodified Fork Detected: "${repoData.full_name}" was forked from "${parentRepo || 'upstream'}", but has 0 verified commits authored by ${owner}. To maintain verification integrity, unmodified forks are excluded from awarding skill points.`,
+      isFork: true,
+      parentRepo,
+      authorCommitCount: 0,
+      isForkWithoutContributions: true,
+      contributionType: 'unmodified_fork',
+    };
   }
 
   // Step 6: Competency mapping based on real GitHub data
@@ -334,6 +436,14 @@ export async function scanGithubRepository(rawInput: string): Promise<GithubScan
     commitCountSummary: commitSummary,
     license: repoData.license?.spdx_id || repoData.license?.name,
     isRealApiResult: true,
-    statusMessage: `Live GitHub REST API: Verified '${repoData.full_name}' with ${languages.length} languages and ${detectedSkills.length} demonstrated competencies.`,
+    isFork,
+    parentRepo,
+    authorCommitCount,
+    isForkWithoutContributions: false,
+    contributionType,
+    statusMessage: isFork
+      ? `Live GitHub REST API: Verified Open Source Contributions in '${repoData.full_name}' (forked from ${parentRepo || 'upstream'}) with ${authorCommitCount}+ commits authored by ${owner}.`
+      : `Live GitHub REST API: Verified '${repoData.full_name}' with ${languages.length} languages and ${detectedSkills.length} demonstrated competencies.`,
   };
 }
+
