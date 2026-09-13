@@ -207,45 +207,49 @@ export function SkillPassportPage() {
         title="Skill Passport"
         subtitle="Your verified technical competencies backed by inspectable proof"
         right={
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={handleOpenEdit}
-              className="btn-primary text-xs inline-flex items-center gap-1.5 shadow-2xs"
-              title="Edit Skill Passport profile information"
-            >
-              <Edit3 className="h-3.5 w-3.5" />
-              <span>Edit Passport</span>
-            </button>
-            <button
-              onClick={() => navigate(`/passport/${studentId}`)}
-              className="btn-secondary text-xs inline-flex items-center gap-1.5 shadow-2xs text-brand-700 hover:text-brand-800"
-              title="Open public shareable skill passport"
-            >
-              <Shield className="h-3.5 w-3.5 text-brand-600" />
-              <span>Public Passport & QR</span>
-            </button>
-            <button
-              onClick={handleExportJSON}
-              className="btn-secondary text-xs"
-              title="Download verified JSON certification"
-            >
-              {downloaded ? <Check className="h-3.5 w-3.5 text-accent-600" /> : <Download className="h-3.5 w-3.5" />}
-              {downloaded ? 'Downloaded' : 'Export JSON'}
-            </button>
-            <button
-              onClick={() => window.print()}
-              className="btn-secondary text-xs"
-              title="Print or save as PDF"
-            >
-              <Printer className="h-3.5 w-3.5" /> Print / PDF
-            </button>
-            <button
-              onClick={() => setShowDeleteModal(true)}
-              className="btn-secondary text-xs text-rose-600 hover:bg-rose-50 hover:border-rose-200"
-              title="Delete account data"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
+              <button
+                onClick={handleOpenEdit}
+                className="btn-primary text-xs inline-flex items-center justify-center gap-1.5 shadow-2xs"
+                title="Edit Skill Passport profile information"
+              >
+                <Edit3 className="h-3.5 w-3.5" />
+                <span>Edit Passport</span>
+              </button>
+              <button
+                onClick={() => navigate(`/passport/${studentId}`)}
+                className="btn-secondary text-xs inline-flex items-center justify-center gap-1.5 shadow-2xs text-brand-700 hover:text-brand-800"
+                title="Open public shareable skill passport"
+              >
+                <Shield className="h-3.5 w-3.5 text-brand-600" />
+                <span>Public QR</span>
+              </button>
+            </div>
+            <div className="grid grid-cols-3 gap-2 sm:flex sm:items-center">
+              <button
+                onClick={handleExportJSON}
+                className="btn-secondary text-xs inline-flex items-center justify-center gap-1"
+                title="Download verified JSON certification"
+              >
+                {downloaded ? <Check className="h-3.5 w-3.5 text-accent-600" /> : <Download className="h-3.5 w-3.5" />}
+                <span>{downloaded ? 'Saved' : 'JSON'}</span>
+              </button>
+              <button
+                onClick={() => window.print()}
+                className="btn-secondary text-xs inline-flex items-center justify-center gap-1"
+                title="Print or save as PDF"
+              >
+                <Printer className="h-3.5 w-3.5" /> <span>PDF</span>
+              </button>
+              <button
+                onClick={() => setShowDeleteModal(true)}
+                className="btn-secondary text-xs text-rose-600 hover:bg-rose-50 hover:border-rose-200 inline-flex items-center justify-center"
+                title="Delete account data"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
         }
       />

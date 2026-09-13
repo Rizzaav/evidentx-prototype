@@ -148,11 +148,11 @@ export function AppShell({
 
             <button
               onClick={() => setAuthModalOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-ink-200 dark:border-ink-700 bg-white dark:bg-ink-800 px-3 py-1.5 text-xs font-semibold text-ink-700 dark:text-ink-200 hover:border-brand-300 hover:bg-brand-50 dark:hover:bg-ink-700 hover:text-brand-700 shadow-sm transition"
+              className="hidden sm:inline-flex items-center gap-1.5 rounded-xl border border-ink-200 dark:border-ink-700 bg-white dark:bg-ink-800 px-3 py-1.5 text-xs font-semibold text-ink-700 dark:text-ink-200 hover:border-brand-300 hover:bg-brand-50 dark:hover:bg-ink-700 hover:text-brand-700 shadow-sm transition"
               title="Switch Account or Sign In"
             >
               <ArrowLeftRight className="h-3.5 w-3.5" />
-              <span className="hidden xs:inline">Switch Account</span>
+              <span>Switch Account</span>
             </button>
 
             {/* Theme Toggle Button */}
@@ -416,9 +416,46 @@ export function AppShell({
       />
 
       {/* Main Content Area */}
-      <main className="flex-1">
-        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 animate-fade-in">{children}</div>
+      <main className="flex-1 pb-24 sm:pb-8">
+        <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8 py-4 sm:py-6 animate-fade-in">{children}</div>
       </main>
+
+      {/* Persistent Mobile Bottom Navigation Bar */}
+      <nav
+        aria-label="Mobile Bottom Navigation"
+        className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-ink-900/95 backdrop-blur-lg border-t border-ink-200/90 dark:border-ink-800 shadow-lift"
+        style={{ paddingBottom: 'max(0.375rem, env(safe-area-inset-bottom))' }}
+      >
+        <div className="flex items-center justify-around gap-1 px-2 py-1.5">
+          {nav.slice(0, 5).map((item) => {
+            const active = activePath === item.path || activePath.startsWith(item.path + '/');
+            return (
+              <button
+                key={item.path}
+                onClick={() => handleNavClick(item.path)}
+                className={`flex flex-1 flex-col items-center justify-center py-1 rounded-xl transition-all ${
+                  active
+                    ? 'text-brand-600 dark:text-brand-400 font-bold'
+                    : 'text-ink-500 dark:text-ink-400 hover:text-ink-800 dark:hover:text-ink-200 font-medium'
+                }`}
+              >
+                <div
+                  className={`p-1.5 rounded-xl transition-all ${
+                    active
+                      ? 'bg-brand-50 dark:bg-brand-950/80 text-brand-600 dark:text-brand-400 scale-105 shadow-2xs'
+                      : ''
+                  }`}
+                >
+                  {item.icon}
+                </div>
+                <span className="text-[10px] leading-tight mt-0.5 truncate max-w-[62px]">
+                  {item.label.split(' ')[0]}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
     </div>
   );
 }

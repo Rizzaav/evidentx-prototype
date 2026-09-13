@@ -393,16 +393,16 @@ export function EvidencePage() {
         title="Evidence & Credentials"
         subtitle="Every skill is backed by live verifiable proof and cryptographic SHA-256 hashes"
         right={
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
             <button
               onClick={() => navigate(`/passport/${studentId}`)}
-              className="btn-secondary text-xs inline-flex items-center gap-1.5 shadow-2xs"
+              className="btn-secondary text-xs inline-flex items-center justify-center gap-1.5 shadow-2xs"
             >
               <QrCode className="h-4 w-4 text-brand-600" />
-              <span>Public Skill Passport</span>
+              <span>Public Passport</span>
             </button>
-            <button onClick={handleOpenAdd} className="btn-primary text-xs">
-              <PlusCircle className="h-4 w-4" /> Add Verified Evidence
+            <button onClick={handleOpenAdd} className="btn-primary text-xs inline-flex items-center justify-center gap-1.5">
+              <PlusCircle className="h-4 w-4" /> <span>Add Evidence</span>
             </button>
           </div>
         }

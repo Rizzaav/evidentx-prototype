@@ -244,19 +244,19 @@ export function PageHeader({
   right?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-      <div className="flex items-start gap-3">
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3.5 sm:gap-4 mb-5 sm:mb-6">
+      <div className="flex items-start gap-3 min-w-0">
         {backTo && (
-          <button onClick={onBack} className="btn-ghost -ml-2 p-1.5 text-ink-500 hover:text-ink-900">
+          <button onClick={onBack} className="btn-ghost -ml-2 p-1.5 text-ink-500 hover:text-ink-900 dark:hover:text-white">
             <ArrowLeft className="h-4 w-4" />
           </button>
         )}
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-ink-900">{title}</h1>
-          {subtitle && <p className="text-sm text-ink-500 mt-0.5">{subtitle}</p>}
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-ink-900 dark:text-white truncate">{title}</h1>
+          {subtitle && <p className="text-xs sm:text-sm text-ink-500 dark:text-ink-400 mt-0.5 leading-relaxed">{subtitle}</p>}
         </div>
       </div>
-      {right && <div>{right}</div>}
+      {right && <div className="w-full sm:w-auto shrink-0">{right}</div>}
     </div>
   );
 }

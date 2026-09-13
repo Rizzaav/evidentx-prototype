@@ -126,25 +126,25 @@ export function StudentDashboardPage() {
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-6 border-t border-white/10 pt-4 sm:border-t-0 sm:pt-0">
+          <div className="grid grid-cols-3 gap-2 text-center border-t border-white/10 pt-4 sm:flex sm:items-center sm:text-left sm:gap-6 sm:border-t-0 sm:pt-0">
             <div>
-              <div className="text-3xl font-bold">{summary.skills.length}</div>
+              <div className="text-2xl sm:text-3xl font-bold">{summary.skills.length}</div>
               <div className="text-[10px] font-bold uppercase tracking-wider text-brand-200">Verified Skills</div>
             </div>
             <div>
-              <div className="text-3xl font-bold">{summary.avgProficiency}%</div>
+              <div className="text-2xl sm:text-3xl font-bold">{summary.avgProficiency}%</div>
               <div className="text-[10px] font-bold uppercase tracking-wider text-brand-200">Avg Proficiency</div>
             </div>
             <div>
-              <div className="text-3xl font-bold">{studentApps.length}</div>
+              <div className="text-2xl sm:text-3xl font-bold">{studentApps.length}</div>
               <div className="text-[10px] font-bold uppercase tracking-wider text-brand-200">Applications</div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Quick actions */}
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Quick actions: 2x2 on mobile, 4-col on desktop */}
+      <div className="mt-5 sm:mt-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <ActionCard icon={<GraduationCap className="h-5 w-5 text-brand-600" />} title="Skill Passport" desc="Verified skills & proof" onClick={() => navigate('/student/passport')} />
         <ActionCard icon={<Compass className="h-5 w-5 text-accent-600" />} title="Internships" desc="Explainable matches" onClick={() => navigate('/student/internships')} />
         <ActionCard icon={<Target className="h-5 w-5 text-amber-600" />} title="Skill Gap" desc="Development roadmaps" onClick={() => navigate('/student/skillgap')} />

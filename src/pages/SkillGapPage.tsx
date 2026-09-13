@@ -72,14 +72,14 @@ export function SkillGapPage({ opportunityId }: { opportunityId?: string }) {
       </div>
 
       {/* Target summary */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-ink-900 to-brand-950 p-6 text-white sm:p-8">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-ink-900 to-brand-950 p-5 sm:p-8 text-white">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="text-xs font-bold uppercase tracking-wide text-white/60">Comparing against</div>
-            <h2 className="mt-1 font-display text-xl font-extrabold">{opp.title}</h2>
-            <div className="text-sm text-white/70">{opp.organization}</div>
+            <h2 className="mt-1 font-display text-xl sm:text-2xl font-extrabold">{opp.title}</h2>
+            <div className="text-xs sm:text-sm text-white/70">{opp.organization}</div>
           </div>
-          <div className="flex gap-4">
+          <div className="grid grid-cols-3 gap-2 border-t border-white/10 pt-3 sm:border-t-0 sm:pt-0 sm:flex sm:gap-5">
             <GapStat label="Strong" value={gap.strong.length} color="text-accent-400" />
             <GapStat label="Partial" value={gap.partial.length} color="text-amber-400" />
             <GapStat label="Missing" value={gap.missing.length} color="text-rose-400" />
