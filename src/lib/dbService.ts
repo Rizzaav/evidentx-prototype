@@ -51,20 +51,23 @@ export async function dbFetchStudents(): Promise<Student[]> {
 export async function dbCreateStudent(student: Student): Promise<boolean> {
   if (!isSupabaseConfigured() || !supabase) return false;
 
-  const { error } = await supabase.from('students').insert({
-    id: student.id,
-    name: student.name,
-    email: student.email,
-    program: student.program,
-    year: student.year,
-    university: student.university,
-    bio: student.bio,
-    avatar_color: student.avatarColor,
-    interests: student.interests,
-  });
+  const { error } = await supabase.from('students').upsert(
+    {
+      id: student.id,
+      name: student.name,
+      email: student.email,
+      program: student.program,
+      year: student.year,
+      university: student.university,
+      bio: student.bio,
+      avatar_color: student.avatarColor,
+      interests: student.interests,
+    },
+    { onConflict: 'id' }
+  );
 
   if (error) {
-    console.error('Failed to create student in Supabase:', error.message);
+    console.error('Failed to create/upsert student in Supabase:', error.message);
     return false;
   }
   return true;
@@ -185,23 +188,40 @@ export async function dbUpsertApplication(app: Application): Promise<boolean> {
 export async function dbCreateEvidence(evidence: Evidence): Promise<boolean> {
   if (!isSupabaseConfigured() || !supabase) return false;
 
-  const { error } = await supabase.from('evidence').insert({
-    id: evidence.id,
-    student_id: evidence.studentId,
-    type: evidence.type,
-    title: evidence.title,
-    description: evidence.description,
-    issuer: evidence.issuer,
-    date: evidence.date,
-    verification: evidence.verification,
-    strength: evidence.strength,
-    score: evidence.score ?? null,
-    url: evidence.url ?? null,
-    skills: evidence.skills,
-  });
+  const { error } = await supabase.from('evidence').upsert(
+    {
+      id: evidence.id,
+      student_id: evidence.studentId,
+      type: evidence.type,
+      title: evidence.title,
+      description: evidence.description,
+      issuer: evidence.issuer,
+      date: evidence.date,
+      verification: evidence.verification,
+      strength: evidence.strength,
+      score: evidence.score ?? null,
+      url: evidence.url ?? null,
+      skills: evidence.skills,
+    },
+    { onConflict: 'id' }
+  );
 
   if (error) {
-    console.error('Failed to create evidence in Supabase:', error.message);
+    console.error('Failed to create/upsert evidence in Supabase:', error.message);
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Delete evidence artifact from Supabase
+ */
+export async function dbDeleteEvidence(evidenceId: string): Promise<boolean> {
+  if (!isSupabaseConfigured() || !supabase) return false;
+
+  const { error } = await supabase.from('evidence').delete().eq('id', evidenceId);
+  if (error) {
+    console.error('Failed to delete evidence from Supabase:', error.message);
     return false;
   }
   return true;

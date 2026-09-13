@@ -74,33 +74,107 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      supabase.auth.getSession().then(({ data, error }) => {
-        if (!error && data?.session) {
-          setSession(data.session);
-          setUser(data.session.user ?? null);
-          if (data.session.user) {
-            const meta = data.session.user.user_metadata || {};
-            const userEmail = (data.session.user.email || '').toLowerCase().trim();
-            let savedRole: UserRole | undefined;
-            try {
-              const savedRoles = JSON.parse(localStorage.getItem('evx_user_roles_v1') || '{}');
-              savedRole = savedRoles[userEmail];
-            } catch {}
-            const resolvedRole: UserRole = (meta.role as UserRole) || savedRole || (userEmail.includes('org') || userEmail.includes('recruiter') ? 'organization' : 'student');
+      const syncUserToStateAndDb = async (authUser: User) => {
+        const meta = authUser.user_metadata || {};
+        const userEmail = (authUser.email || '').toLowerCase().trim();
+        let savedRole: UserRole | undefined;
+        try {
+          const savedRoles = JSON.parse(localStorage.getItem('evx_user_roles_v1') || '{}');
+          savedRole = savedRoles[userEmail];
+        } catch {}
+        const resolvedRole: UserRole =
+          (meta.role as UserRole) ||
+          savedRole ||
+          (userEmail.includes('org') || userEmail.includes('recruiter') ? 'organization' : 'student');
 
-            const p: UserProfile = {
-              id: data.session.user.id,
-              email: data.session.user.email || '',
-              name: meta.name || data.session.user.email?.split('@')[0] || 'User',
-              role: resolvedRole,
-              organization: meta.organization,
-              university: meta.university,
-              program: meta.program,
-              avatarColor: resolvedRole === 'organization' ? 'from-accent-600 to-accent-800' : (meta.avatarColor || 'from-brand-500 to-brand-700'),
-            };
-            setProfile(p);
-            localStorage.setItem(LOCAL_USER_KEY, JSON.stringify(p));
+        const realName = meta.full_name || meta.name || meta.user_name || userEmail.split('@')[0] || 'User';
+        const provider = authUser.app_metadata?.provider || 'oauth';
+
+        const p: UserProfile = {
+          id: authUser.id,
+          email: userEmail,
+          name: realName,
+          role: resolvedRole,
+          organization: meta.organization,
+          university: meta.university || (provider === 'github' ? 'GitHub Developer Community' : 'Verified Google Account'),
+          program: meta.program || 'Software Engineering',
+          avatarColor:
+            resolvedRole === 'organization'
+              ? 'from-accent-600 to-accent-800'
+              : meta.avatarColor || 'from-brand-500 to-brand-700',
+        };
+
+        setProfile(p);
+        localStorage.setItem(LOCAL_USER_KEY, JSON.stringify(p));
+
+        // Automatically ensure real student record exists in local state and Supabase DB
+        if (resolvedRole === 'student' && userEmail) {
+          let studentId = `st_${authUser.id.replace(/[^a-zA-Z0-9]/g, '').slice(0, 10)}`;
+
+          if (supabase) {
+            try {
+              const { data: existingStudent } = await supabase
+                .from('students')
+                .select('id')
+                .eq('email', userEmail)
+                .maybeSingle();
+
+              if (existingStudent?.id) {
+                studentId = existingStudent.id;
+              }
+            } catch (e) {
+              console.warn('Supabase student lookup warning:', e);
+            }
           }
+
+          p.id = studentId;
+          setProfile(p);
+          localStorage.setItem(LOCAL_USER_KEY, JSON.stringify(p));
+
+          const studentRec: Student = {
+            id: studentId,
+            name: realName,
+            email: userEmail,
+            program: meta.program || 'Software Engineering',
+            year: meta.year || '3rd Year',
+            university: meta.university || (provider === 'github' ? 'GitHub Developer Community' : 'Verified Google Account'),
+            bio: meta.bio || `Verified candidate authenticated via ${provider.toUpperCase()}.`,
+            avatarColor: 'from-brand-500 to-brand-700',
+            interests: ['Full-Stack', 'Open Source', 'Software Engineering'],
+          };
+
+          addCustomStudentRecord(studentRec, [], {});
+
+          if (supabase) {
+            supabase
+              .from('students')
+              .upsert(
+                {
+                  id: studentId,
+                  name: realName,
+                  email: userEmail,
+                  program: studentRec.program,
+                  year: studentRec.year,
+                  university: studentRec.university,
+                  bio: studentRec.bio,
+                  avatar_color: studentRec.avatarColor,
+                  interests: studentRec.interests,
+                  user_id: authUser.id,
+                },
+                { onConflict: 'id' }
+              )
+              .then(({ error: upErr }) => {
+                if (upErr) console.warn('Supabase student sync warning:', upErr.message);
+              });
+          }
+        }
+      };
+
+      supabase.auth.getSession().then(({ data, error }) => {
+        if (!error && data?.session?.user) {
+          setSession(data.session);
+          setUser(data.session.user);
+          syncUserToStateAndDb(data.session.user);
         }
         setLoading(false);
       }).catch((err) => {
@@ -114,27 +188,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          const meta = session.user.user_metadata || {};
-          const userEmail = (session.user.email || '').toLowerCase().trim();
-          let savedRole: UserRole | undefined;
-          try {
-            const savedRoles = JSON.parse(localStorage.getItem('evx_user_roles_v1') || '{}');
-            savedRole = savedRoles[userEmail];
-          } catch {}
-          const resolvedRole: UserRole = (meta.role as UserRole) || savedRole || (userEmail.includes('org') || userEmail.includes('recruiter') ? 'organization' : 'student');
-
-          const p: UserProfile = {
-            id: session.user.id,
-            email: session.user.email || '',
-            name: meta.name || session.user.email?.split('@')[0] || 'User',
-            role: resolvedRole,
-            organization: meta.organization,
-            university: meta.university,
-            program: meta.program,
-            avatarColor: resolvedRole === 'organization' ? 'from-accent-600 to-accent-800' : (meta.avatarColor || 'from-brand-500 to-brand-700'),
-          };
-          setProfile(p);
-          localStorage.setItem(LOCAL_USER_KEY, JSON.stringify(p));
+          syncUserToStateAndDb(session.user);
+          const currentHash = window.location.hash;
+          if (!currentHash || currentHash === '#' || currentHash === '#/' || currentHash === '#/login') {
+            const userEmail = (session.user.email || '').toLowerCase();
+            const target = (userEmail.includes('org') || userEmail.includes('recruiter'))
+              ? '#/org/dashboard'
+              : '#/student/dashboard';
+            window.location.hash = target;
+          }
         } else if (_event === 'SIGNED_OUT') {
           setProfile(null);
           localStorage.removeItem(LOCAL_USER_KEY);
@@ -349,7 +411,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     []
   );
 
-    const signInWithGitHubUsername = useCallback(async (rawUsername: string) => {
+  const signInWithGitHubUsername = useCallback(async (rawUsername: string) => {
     const cleaned = rawUsername
       .trim()
       .replace(/^https?:\/\/github\.com\//i, '')
@@ -357,21 +419,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!cleaned) return { error: 'Please enter a valid GitHub username' };
 
     try {
-      let ghName = cleaned;
-      let ghBio = 'Verified GitHub Developer building on EvidentX.';
-      let ghEmail = `${cleaned}@github.com`;
-      let ghCompany = 'GitHub Open Source Contributor';
-
       const res = await fetch(`https://api.github.com/users/${cleaned}`);
-      if (res.ok) {
-        const ghData = await res.json();
-        ghName = ghData.name || ghData.login || cleaned;
-        ghBio = ghData.bio || `Active GitHub developer with ${ghData.public_repos || 0} public repositories.`;
-        ghEmail = ghData.email || `${cleaned}@users.noreply.github.com`;
-        ghCompany = ghData.company || ghData.location || 'GitHub Developer Community';
+      if (res.status === 404) {
+        return { error: `GitHub account "${cleaned}" does not exist. Please check the username and try again.` };
+      }
+      if (!res.ok) {
+        return { error: `GitHub API returned status ${res.status}: Unable to verify user "${cleaned}".` };
       }
 
-      const userId = `gh_${cleaned.toLowerCase()}`;
+      const ghData = await res.json();
+      const ghName = ghData.name || ghData.login || cleaned;
+      const ghBio = ghData.bio || `Active GitHub developer with ${ghData.public_repos || 0} public repositories.`;
+      const ghEmail = ghData.email || `${cleaned.toLowerCase()}@users.noreply.github.com`;
+      const ghCompany = ghData.company || ghData.location || 'GitHub Developer Community';
+
+      const userId = `gh_${cleaned.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
       const newProf: UserProfile = {
         id: userId,
         email: ghEmail,
@@ -394,6 +456,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         interests: ['Open Source', 'Full-Stack', 'Git & CI/CD'],
       };
       addCustomStudentRecord(studentRecord, [], {});
+
+      if (supabase) {
+        supabase
+          .from('students')
+          .upsert(
+            {
+              id: userId,
+              name: ghName,
+              email: ghEmail,
+              program: studentRecord.program,
+              year: studentRecord.year,
+              university: studentRecord.university,
+              bio: studentRecord.bio,
+              avatar_color: studentRecord.avatarColor,
+              interests: studentRecord.interests,
+            },
+            { onConflict: 'id' }
+          )
+          .then(({ error: upErr }) => {
+            if (upErr) console.warn('Supabase sync GitHub user warning:', upErr.message);
+          });
+      }
 
       setProfile(newProf);
       localStorage.setItem(LOCAL_USER_KEY, JSON.stringify(newProf));
@@ -431,18 +515,67 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
     addCustomStudentRecord(studentRecord, [], {});
 
+    if (supabase) {
+      supabase
+        .from('students')
+        .upsert(
+          {
+            id: userId,
+            name: cleanName,
+            email: cleanEmail,
+            program: studentRecord.program,
+            year: studentRecord.year,
+            university: studentRecord.university,
+            bio: studentRecord.bio,
+            avatar_color: studentRecord.avatarColor,
+            interests: studentRecord.interests,
+          },
+          { onConflict: 'id' }
+        )
+        .then(({ error: upErr }) => {
+          if (upErr) console.warn('Supabase sync Google user warning:', upErr.message);
+        });
+    }
+
     setProfile(newProf);
     localStorage.setItem(LOCAL_USER_KEY, JSON.stringify(newProf));
     return { error: null };
   }, []);
 
   const signInWithOAuth = useCallback(async (provider: 'github' | 'google') => {
-    if (provider === 'github') {
-      return signInWithGitHubUsername('developer');
-    } else {
-      return signInWithGoogleCredentials('Google User', 'user@gmail.com');
+    if (!isSupabaseConfigured() || !supabase) {
+      return { error: 'Supabase is not configured. Real OAuth requires a configured Supabase connection.' };
     }
-  }, [signInWithGitHubUsername, signInWithGoogleCredentials]);
+
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${window.location.origin}/`,
+          queryParams:
+            provider === 'google'
+              ? {
+                  access_type: 'offline',
+                  prompt: 'consent',
+                }
+              : undefined,
+          scopes: provider === 'github' ? 'read:user user:email' : undefined,
+        },
+      });
+
+      if (error) {
+        return { error: error.message };
+      }
+
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+
+      return { error: null };
+    } catch (err: any) {
+      return { error: err?.message || `Failed to initiate real ${provider} OAuth sign-in.` };
+    }
+  }, []);
 
   const signOut = useCallback(async () => {
     if (isSupabaseConfigured() && supabase) {

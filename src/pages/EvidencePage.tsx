@@ -24,6 +24,7 @@ import {
   Edit3,
   Trash2,
   AlertTriangle,
+  AlertCircle,
 } from 'lucide-react';
 import {
   PageHeader,
@@ -70,11 +71,13 @@ export function EvidencePage() {
 
   // File upload state
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const [fileVerification, setFileVerification] = useState<FileVerificationResult | null>(null);
 
   // Live GitHub Scanner state
   const [githubUrl, setGithubUrl] = useState('');
   const [isScanningGithub, setIsScanningGithub] = useState(false);
   const [githubScanData, setGithubScanData] = useState<GithubScanResult | null>(null);
+  const [githubScanError, setGithubScanError] = useState<string | null>(null);
 
   // AI Scanner state
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -207,6 +210,7 @@ export function EvidencePage() {
     if (!githubUrl.trim()) return;
     setIsScanningGithub(true);
     setGithubScanData(null);
+    setGithubScanError(null);
 
     try {
       const result = await scanGithubRepository(githubUrl);
@@ -221,7 +225,7 @@ export function EvidencePage() {
       );
       setScore(result.isRealApiResult ? `Verified GitHub Repo (${result.stars} ★)` : 'Production Codebase');
       setVerification('verified');
-      setVerificationMethod(result.isRealApiResult ? 'Live GitHub REST API v3 & AST' : 'Repository Structure Analyzer');
+      setVerificationMethod(result.isRealApiResult ? 'Live GitHub REST API v3' : 'Repository Structure Analyzer');
 
       setSelectedSkills(result.detectedSkills);
       setSkillStrengths(result.skillStrengths);
@@ -229,13 +233,12 @@ export function EvidencePage() {
       setModalTab('form');
       setAiAuditNote(result.statusMessage);
     } catch (err: any) {
+      setGithubScanError(err.message || 'Failed to verify GitHub repository.');
       console.error('GitHub scan error:', err);
     } finally {
       setIsScanningGithub(false);
     }
   };
-
-  const [fileVerification, setFileVerification] = useState<FileVerificationResult | null>(null);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -584,9 +587,12 @@ export function EvidencePage() {
                   <input
                     type="text"
                     value={githubUrl}
-                    onChange={(e) => setGithubUrl(e.target.value)}
+                    onChange={(e) => {
+                      setGithubUrl(e.target.value);
+                      if (githubScanError) setGithubScanError(null);
+                    }}
                     placeholder="https://github.com/facebook/react or username/repo"
-                    className="input text-xs"
+                    className={`input text-xs ${githubScanError ? 'border-rose-400 focus:border-rose-500' : ''}`}
                   />
                   <button
                     type="button"
@@ -596,7 +602,7 @@ export function EvidencePage() {
                   >
                     {isScanningGithub ? (
                       <>
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Fetching GitHub...
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Verifying GitHub...
                       </>
                     ) : (
                       <>
@@ -605,6 +611,20 @@ export function EvidencePage() {
                     )}
                   </button>
                 </div>
+
+                {/* Validation Error Banner */}
+                {githubScanError && (
+                  <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-2.5 text-xs text-rose-900 animate-fade-in">
+                    <AlertCircle className="h-4 w-4 text-rose-600 shrink-0 mt-0.5" />
+                    <div className="space-y-0.5">
+                      <div className="font-bold text-rose-800">Verification Rejected</div>
+                      <div className="text-rose-700 leading-relaxed">{githubScanError}</div>
+                      <div className="text-[11px] text-rose-500 pt-0.5">
+                        EvidentX strictly enforces cryptographic provenance. Non-GitHub links, private repositories, or non-existent projects cannot be verified.
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Live Scan Results Card */}
                 {githubScanData && (
@@ -656,9 +676,16 @@ export function EvidencePage() {
                   <input type="file" accept=".pdf,.png,.jpg,.jpeg" onChange={handleFileUpload} className="hidden" />
                 </label>
                 {uploadedFileName && (
-                  <div className="text-xs font-semibold text-emerald-700 flex items-center justify-center gap-1 mt-2">
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                    <span>Attached & Hashed: {uploadedFileName}</span>
+                  <div className="text-xs font-semibold text-emerald-700 flex flex-col items-center justify-center gap-0.5 mt-2">
+                    <div className="flex items-center gap-1">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      <span>Attached & Hashed: {uploadedFileName}</span>
+                    </div>
+                    {fileVerification && (
+                      <span className="text-[10px] font-mono text-ink-500">
+                        SHA-256: {fileVerification.sha256Hash.slice(0, 16)}... ({fileVerification.fileSizeFormatted})
+                      </span>
+                    )}
                   </div>
                 )}
               </div>

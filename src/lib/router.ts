@@ -20,6 +20,10 @@ export function useRouter() {
 
 function normalize(hash: string): string {
   if (!hash || hash === '#') return '/';
+  // Supabase OAuth callback tokens arrive in hash fragment (#access_token=... or #error=...)
+  if (hash.includes('access_token=') || hash.includes('refresh_token=') || hash.includes('error_code=')) {
+    return '/';
+  }
   return hash.replace(/^#/, '');
 }
 

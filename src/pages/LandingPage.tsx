@@ -16,6 +16,7 @@ import { useRouter } from '@/lib/router';
 import { useAuth } from '@/lib/authContext';
 import { STUDENTS, OPPORTUNITIES, TEAMS, SKILLS } from '@/data/mockData';
 import { Logo, LogoMark } from '@/components/Logo';
+import { ThemeToggle } from '@/lib/themeContext';
 
 export function LandingPage() {
   const { navigate } = useRouter();
@@ -29,18 +30,19 @@ export function LandingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-ink-50">
+    <div className="min-h-screen bg-ink-50 dark:bg-ink-950 transition-colors">
       {/* Nav */}
-      <header className="sticky top-0 z-30 border-b border-ink-200/80 bg-white/90 backdrop-blur-md">
+      <header className="sticky top-0 z-30 border-b border-ink-200/80 dark:border-ink-800 bg-white/90 dark:bg-ink-900/90 backdrop-blur-md transition-colors">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3.5 sm:px-6 lg:px-8">
           <div className="flex items-center gap-2.5">
             <LogoMark size={32} />
-            <span className="font-display text-lg font-bold text-ink-900 tracking-tight">EvidentX</span>
+            <span className="font-display text-lg font-bold text-ink-900 dark:text-white tracking-tight">EvidentX</span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <button onClick={() => navigate('/fairness')} className="btn-ghost hidden sm:inline-flex text-xs font-semibold">
               <Shield className="h-4 w-4 text-accent-600" /> Fairness Policy
             </button>
+            <ThemeToggle />
             <button onClick={() => navigate('/login')} className="btn-secondary text-xs font-semibold">
               Sign In / Join
             </button>
@@ -59,13 +61,13 @@ export function LandingPage() {
         <div className="mx-auto max-w-7xl px-4 pb-16 pt-12 sm:px-6 lg:px-8 lg:pt-16">
           <div className="grid items-center gap-12 lg:grid-cols-2">
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700">
+              <div className="inline-flex items-center gap-2 rounded-full border border-brand-200 dark:border-brand-800 bg-brand-50 dark:bg-brand-950/60 px-3 py-1 text-xs font-semibold text-brand-700 dark:text-brand-300">
                 <Sparkles className="h-3.5 w-3.5" /> Verified Evidence Infrastructure
               </div>
-              <h1 className="mt-4 font-display text-4xl font-bold tracking-tight text-ink-900 sm:text-5xl lg:text-6xl leading-[1.1]">
+              <h1 className="mt-4 font-display text-4xl font-bold tracking-tight text-ink-900 dark:text-white sm:text-5xl lg:text-6xl leading-[1.1]">
                 Demonstrated skills, verified by proof and explainable matching.
               </h1>
-              <p className="mt-5 max-w-xl text-base text-ink-600 leading-relaxed">
+              <p className="mt-5 max-w-xl text-base text-ink-600 dark:text-ink-300 leading-relaxed">
                 Convert coursework, production projects, and verified credentials into a portable <strong>Skill Passport</strong>. Match to internships and multidisciplinary squads with transparent, deterministic evidence breakdowns.
               </p>
               
@@ -92,8 +94,8 @@ export function LandingPage() {
               <div className="mt-8 grid grid-cols-4 gap-3">
                 {stats.map((s) => (
                   <div key={s.label} className="card p-3.5 text-center">
-                    <div className="text-2xl font-bold text-brand-600">{s.value}+</div>
-                    <div className="text-[11px] font-medium text-ink-500 uppercase tracking-wider mt-0.5">{s.label}</div>
+                    <div className="text-2xl font-bold text-brand-600 dark:text-brand-400">{s.value}+</div>
+                    <div className="text-[11px] font-medium text-ink-500 dark:text-ink-400 uppercase tracking-wider mt-0.5">{s.label}</div>
                   </div>
                 ))}
               </div>

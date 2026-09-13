@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Student, Evidence } from '@/types';
 import { _reloadCustomData } from '@/data/mockData';
+import { dbCreateStudent, dbCreateEvidence, dbDeleteEvidence } from '@/lib/dbService';
 
 // ============================================================
 // Add/remove/update custom student profiles — persisted in localStorage.
@@ -57,6 +58,13 @@ export function addCustomStudentRecord(
   Object.assign(data.evidenceSkillStrength, evidenceSkillStrength);
   saveCustom(data);
   notify();
+
+  // Asynchronously persist to Supabase
+  dbCreateStudent(student).then(() => {
+    for (const ev of evidence) {
+      dbCreateEvidence(ev);
+    }
+  }).catch((err) => console.warn('Supabase sync student error:', err));
 }
 
 export function updateCustomStudentRecord(student: Student) {
@@ -69,6 +77,9 @@ export function updateCustomStudentRecord(student: Student) {
   }
   saveCustom(data);
   notify();
+
+  // Asynchronously persist to Supabase
+  dbCreateStudent(student).catch((err) => console.warn('Supabase update student error:', err));
 }
 
 export function updateEvidenceRecord(
@@ -85,6 +96,9 @@ export function updateEvidenceRecord(
   data.evidenceSkillStrength[evidenceItem.id] = skillStrengths;
   saveCustom(data);
   notify();
+
+  // Asynchronously persist to Supabase
+  dbCreateEvidence(evidenceItem).catch((err) => console.warn('Supabase sync evidence error:', err));
 }
 
 export function deleteEvidenceRecord(evidenceId: string) {
@@ -93,6 +107,9 @@ export function deleteEvidenceRecord(evidenceId: string) {
   delete data.evidenceSkillStrength[evidenceId];
   saveCustom(data);
   notify();
+
+  // Asynchronously delete from Supabase
+  dbDeleteEvidence(evidenceId).catch((err) => console.warn('Supabase delete evidence error:', err));
 }
 
 export function useCustomStudents() {

@@ -24,6 +24,7 @@ import { useAuth } from '@/lib/authContext';
 import { AuthModal } from '@/components/AuthModal';
 import { Avatar } from '@/components/ui';
 import { NotificationBell } from '@/components/NotificationBell';
+import { ThemeToggle } from '@/lib/themeContext';
 
 type NavItem = { label: string; path: string; icon: ReactNode };
 
@@ -109,15 +110,15 @@ export function AppShell({
   };
 
   return (
-    <div className="min-h-screen bg-ink-50 flex flex-col">
+    <div className="min-h-screen bg-ink-50 dark:bg-ink-950 flex flex-col transition-colors">
       {/* Sleek Topbar with Hamburger Toggle */}
-      <header className="sticky top-0 z-30 border-b border-ink-100 bg-white/90 backdrop-blur-md px-4 sm:px-6 py-3 shadow-soft transition-all">
+      <header className="sticky top-0 z-30 border-b border-ink-100 dark:border-ink-800 bg-white/90 dark:bg-ink-900/90 backdrop-blur-md px-4 sm:px-6 py-3 shadow-soft transition-all">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
           <div className="flex items-center gap-3">
             {/* Hamburger Button */}
             <button
               onClick={() => setDrawerOpen((o) => !o)}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-ink-200 bg-white text-ink-700 hover:bg-ink-50 hover:border-brand-300 hover:text-brand-600 shadow-sm transition active:scale-95"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-ink-200 dark:border-ink-700 bg-white dark:bg-ink-800 text-ink-700 dark:text-ink-200 hover:bg-ink-50 dark:hover:bg-ink-700 hover:border-brand-300 hover:text-brand-600 shadow-sm transition active:scale-95"
               aria-label="Toggle navigation menu"
             >
               <Menu className="h-5 w-5" />
@@ -126,7 +127,7 @@ export function AppShell({
             {/* Logo */}
             <button onClick={() => navigate('/')} className="flex items-center gap-2.5 group">
               <LogoMark size={32} />
-              <span className="font-display text-lg font-extrabold text-ink-900 tracking-tight group-hover:text-brand-600 transition">
+              <span className="font-display text-lg font-extrabold text-ink-900 dark:text-white tracking-tight group-hover:text-brand-600 transition">
                 EvidentX
               </span>
             </button>
@@ -141,7 +142,7 @@ export function AppShell({
           <div className="flex items-center gap-2 sm:gap-3">
             <button
               onClick={() => navigate('/fairness')}
-              className="hidden md:inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold text-ink-600 hover:bg-ink-100/70 hover:text-ink-900 transition"
+              className="hidden md:inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold text-ink-600 dark:text-ink-300 hover:bg-ink-100/70 dark:hover:bg-ink-800 hover:text-ink-900 dark:hover:text-white transition"
             >
               <Shield className="h-3.5 w-3.5 text-accent-600" />
               Fairness Policy
@@ -149,12 +150,15 @@ export function AppShell({
 
             <button
               onClick={() => setAuthModalOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700 shadow-sm transition"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-ink-200 dark:border-ink-700 bg-white dark:bg-ink-800 px-3 py-1.5 text-xs font-semibold text-ink-700 dark:text-ink-200 hover:border-brand-300 hover:bg-brand-50 dark:hover:bg-ink-700 hover:text-brand-700 shadow-sm transition"
               title="Switch Account or Sign In"
             >
               <ArrowLeftRight className="h-3.5 w-3.5" />
               <span className="hidden xs:inline">Switch Account</span>
             </button>
+
+            {/* Theme Toggle Button */}
+            <ThemeToggle />
 
             {/* Notification Bell */}
             <NotificationBell />
@@ -164,7 +168,7 @@ export function AppShell({
               {profile ? (
                 <button
                   onClick={() => setUserDropdownOpen((o) => !o)}
-                  className="flex items-center gap-2 rounded-full border border-ink-200 bg-white p-1 pr-3 hover:border-brand-300 shadow-sm transition active:scale-95"
+                  className="flex items-center gap-2 rounded-full border border-ink-200 dark:border-ink-700 bg-white dark:bg-ink-800 p-1 pr-3 hover:border-brand-300 shadow-sm transition active:scale-95"
                 >
                   <Avatar
                     name={profile.name}
@@ -172,10 +176,10 @@ export function AppShell({
                     size="sm"
                   />
                   <div className="text-left hidden lg:block">
-                    <div className="text-xs font-bold text-ink-900 truncate max-w-[110px] leading-tight">
+                    <div className="text-xs font-bold text-ink-900 dark:text-white truncate max-w-[110px] leading-tight">
                       {profile.name}
                     </div>
-                    <div className="text-[10px] text-ink-400 font-semibold uppercase tracking-wider">
+                    <div className="text-[10px] text-ink-400 dark:text-ink-400 font-semibold uppercase tracking-wider">
                       {profile.role}
                     </div>
                   </div>
@@ -197,11 +201,11 @@ export function AppShell({
                     className="fixed inset-0 z-40"
                     onClick={() => setUserDropdownOpen(false)}
                   />
-                  <div className="absolute right-0 z-50 mt-2 w-64 rounded-2xl border border-ink-100 bg-white p-2 shadow-2xl animate-scale-in">
-                    <div className="px-3 py-2 border-b border-ink-100">
-                      <div className="text-xs font-bold text-ink-900 truncate">{profile.name}</div>
-                      <div className="text-[11px] text-ink-500 truncate">{profile.email}</div>
-                      <div className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-brand-50 border border-brand-200 px-2 py-0.5 text-[10px] font-bold text-brand-700 uppercase tracking-wider">
+                  <div className="absolute right-0 z-50 mt-2 w-64 rounded-2xl border border-ink-100 dark:border-ink-800 bg-white dark:bg-ink-900 p-2 shadow-2xl animate-scale-in">
+                    <div className="px-3 py-2 border-b border-ink-100 dark:border-ink-800">
+                      <div className="text-xs font-bold text-ink-900 dark:text-white truncate">{profile.name}</div>
+                      <div className="text-[11px] text-ink-500 dark:text-ink-400 truncate">{profile.email}</div>
+                      <div className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-brand-50 dark:bg-brand-950/50 border border-brand-200 dark:border-brand-800 px-2 py-0.5 text-[10px] font-bold text-brand-700 dark:text-brand-300 uppercase tracking-wider">
                         {profile.role} account
                       </div>
                     </div>
@@ -212,9 +216,9 @@ export function AppShell({
                           setUserDropdownOpen(false);
                           setAuthModalOpen(true);
                         }}
-                        className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-ink-700 hover:bg-ink-50 transition"
+                        className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-ink-700 dark:text-ink-200 hover:bg-ink-50 dark:hover:bg-ink-800 transition"
                       >
-                        <UserIcon className="h-3.5 w-3.5 text-brand-600" />
+                        <UserIcon className="h-3.5 w-3.5 text-brand-600 dark:text-brand-400" />
                         <span>Switch Account / Sign In</span>
                       </button>
 
@@ -223,7 +227,7 @@ export function AppShell({
                           setUserDropdownOpen(false);
                           signOut();
                         }}
-                        className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 transition"
+                        className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition"
                       >
                         <LogOut className="h-3.5 w-3.5" />
                         <span>Sign Out</span>
@@ -248,23 +252,26 @@ export function AppShell({
 
           {/* Drawer Panel */}
           <aside className="absolute inset-y-0 left-0 flex max-w-full">
-            <div className="w-80 sm:w-96 bg-white shadow-2xl flex flex-col justify-between transform transition-transform duration-300 ease-in-out border-r border-ink-100">
+            <div className="w-80 sm:w-96 bg-white dark:bg-ink-900 shadow-2xl flex flex-col justify-between transform transition-transform duration-300 ease-in-out border-r border-ink-100 dark:border-ink-800">
               {/* Drawer Header */}
               <div>
-                <div className="flex items-center justify-between p-5 border-b border-ink-100">
+                <div className="flex items-center justify-between p-5 border-b border-ink-100 dark:border-ink-800">
                   <div className="flex items-center gap-2.5">
                     <Logo size={32} />
                   </div>
-                  <button
-                    onClick={() => setDrawerOpen(false)}
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-ink-400 hover:bg-ink-100 hover:text-ink-700 transition"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <ThemeToggle />
+                    <button
+                      onClick={() => setDrawerOpen(false)}
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-ink-400 hover:bg-ink-100 dark:hover:bg-ink-800 hover:text-ink-700 dark:hover:text-ink-200 transition"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Role Switcher in Drawer */}
-                <div className="p-4 bg-ink-50/70 border-b border-ink-100">
+                <div className="p-4 bg-ink-50/70 dark:bg-ink-950/60 border-b border-ink-100 dark:border-ink-800">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-[11px] font-bold uppercase tracking-wider text-ink-400">Portal View</span>
                     <span className="text-[10px] font-semibold text-ink-500 capitalize">{profile?.role || 'Guest'} Account</span>
@@ -277,7 +284,7 @@ export function AppShell({
                           className={`rounded-xl p-2 text-center text-xs font-bold transition ${
                             role === 'org'
                               ? 'bg-accent-600 text-white shadow-soft'
-                              : 'bg-white border border-ink-200 text-ink-600 hover:bg-ink-100'
+                              : 'bg-white dark:bg-ink-800 border border-ink-200 dark:border-ink-700 text-ink-600 dark:text-ink-300 hover:bg-ink-100 dark:hover:bg-ink-700'
                           }`}
                         >
                           Organization
@@ -287,7 +294,7 @@ export function AppShell({
                           className={`rounded-xl p-2 text-center text-xs font-bold transition ${
                             role === 'team'
                               ? 'bg-amber-600 text-white shadow-soft'
-                              : 'bg-white border border-ink-200 text-ink-600 hover:bg-ink-100'
+                              : 'bg-white dark:bg-ink-800 border border-ink-200 dark:border-ink-700 text-ink-600 dark:text-ink-300 hover:bg-ink-100 dark:hover:bg-ink-700'
                           }`}
                         >
                           Team Builder
@@ -300,7 +307,7 @@ export function AppShell({
                           className={`rounded-xl p-2 text-center text-xs font-bold transition ${
                             role === 'student'
                               ? 'bg-brand-600 text-white shadow-soft'
-                              : 'bg-white border border-ink-200 text-ink-600 hover:bg-ink-100'
+                              : 'bg-white dark:bg-ink-800 border border-ink-200 dark:border-ink-700 text-ink-600 dark:text-ink-300 hover:bg-ink-100 dark:hover:bg-ink-700'
                           }`}
                         >
                           Student
@@ -310,7 +317,7 @@ export function AppShell({
                           className={`rounded-xl p-2 text-center text-xs font-bold transition ${
                             role === 'team'
                               ? 'bg-amber-600 text-white shadow-soft'
-                              : 'bg-white border border-ink-200 text-ink-600 hover:bg-ink-100'
+                              : 'bg-white dark:bg-ink-800 border border-ink-200 dark:border-ink-700 text-ink-600 dark:text-ink-300 hover:bg-ink-100 dark:hover:bg-ink-700'
                           }`}
                         >
                           Team Squads
@@ -335,15 +342,15 @@ export function AppShell({
                             onClick={() => handleNavClick(item.path)}
                             className={`flex w-full items-center justify-between rounded-xl px-3.5 py-2.5 text-sm font-semibold transition-all ${
                               active
-                                ? 'bg-brand-50 text-brand-700 shadow-sm border border-brand-200'
-                                : 'text-ink-700 hover:bg-ink-50 hover:text-ink-900'
+                                ? 'bg-brand-50 dark:bg-brand-950/60 text-brand-700 dark:text-brand-300 shadow-sm border border-brand-200 dark:border-brand-800'
+                                : 'text-ink-700 dark:text-ink-300 hover:bg-ink-50 dark:hover:bg-ink-800 hover:text-ink-900 dark:hover:text-white'
                             }`}
                           >
                             <div className="flex items-center gap-3">
-                              <span className={active ? 'text-brand-600' : 'text-ink-400'}>{item.icon}</span>
+                              <span className={active ? 'text-brand-600 dark:text-brand-400' : 'text-ink-400'}>{item.icon}</span>
                               <span>{item.label}</span>
                             </div>
-                            <ChevronRight className={`h-4 w-4 transition ${active ? 'text-brand-600' : 'text-ink-300'}`} />
+                            <ChevronRight className={`h-4 w-4 transition ${active ? 'text-brand-600 dark:text-brand-400' : 'text-ink-300'}`} />
                           </button>
                         );
                       })}
@@ -363,15 +370,15 @@ export function AppShell({
                             onClick={() => handleNavClick(item.path)}
                             className={`flex w-full items-center justify-between rounded-xl px-3.5 py-2.5 text-sm font-semibold transition-all ${
                               active
-                                ? 'bg-brand-50 text-brand-700 shadow-sm border border-brand-200'
-                                : 'text-ink-700 hover:bg-ink-50 hover:text-ink-900'
+                                ? 'bg-brand-50 dark:bg-brand-950/60 text-brand-700 dark:text-brand-300 shadow-sm border border-brand-200 dark:border-brand-800'
+                                : 'text-ink-700 dark:text-ink-300 hover:bg-ink-50 dark:hover:bg-ink-800 hover:text-ink-900 dark:hover:text-white'
                             }`}
                           >
                             <div className="flex items-center gap-3">
-                              <span className={active ? 'text-brand-600' : 'text-ink-400'}>{item.icon}</span>
+                              <span className={active ? 'text-brand-600 dark:text-brand-400' : 'text-ink-400'}>{item.icon}</span>
                               <span>{item.label}</span>
                             </div>
-                            <ChevronRight className={`h-4 w-4 transition ${active ? 'text-brand-600' : 'text-ink-300'}`} />
+                            <ChevronRight className={`h-4 w-4 transition ${active ? 'text-brand-600 dark:text-brand-400' : 'text-ink-300'}`} />
                           </button>
                         );
                       })}
@@ -381,7 +388,7 @@ export function AppShell({
               </div>
 
               {/* Drawer Footer */}
-              <div className="p-4 border-t border-ink-100 bg-ink-50/50 space-y-2">
+              <div className="p-4 border-t border-ink-100 dark:border-ink-800 bg-ink-50/50 dark:bg-ink-950/50 space-y-2">
                 <button
                   onClick={() => {
                     setDrawerOpen(false);

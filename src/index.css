@@ -6,6 +6,10 @@
   color-scheme: light;
 }
 
+.dark {
+  color-scheme: dark;
+}
+
 html, body, #root {
   min-height: 100%;
 }
@@ -18,10 +22,19 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+.dark body {
+  background-color: #0b0d14;
+  color: #f0f2f6;
+}
+
 h1, h2, h3, h4, h5, h6 {
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   letter-spacing: -0.015em;
   color: #1e2029;
+}
+
+.dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+  color: #f8f9fb;
 }
 
 /* Subtle, clean scrollbar */
@@ -30,10 +43,13 @@ h1, h2, h3, h4, h5, h6 {
 ::-webkit-scrollbar-thumb { background: #cbd2e0; border-radius: 999px; }
 ::-webkit-scrollbar-thumb:hover { background: #9da3b5; }
 
+.dark ::-webkit-scrollbar-thumb { background: #343845; }
+.dark ::-webkit-scrollbar-thumb:hover { background: #454a5a; }
+
 @layer components {
   /* Self-colored border with low-offset directional elevation */
   .card {
-    @apply bg-white rounded-2xl border border-ink-200/80 shadow-card transition duration-150;
+    @apply bg-white dark:bg-[#12151f] rounded-2xl border border-ink-200/80 dark:border-ink-800/80 shadow-card transition duration-150 text-ink-900 dark:text-ink-100;
   }
   
   .btn {
@@ -45,11 +61,11 @@ h1, h2, h3, h4, h5, h6 {
   }
   
   .btn-secondary {
-    @apply btn bg-white text-ink-800 border border-ink-200 hover:bg-ink-50 hover:border-ink-300 px-4 py-2.5 text-sm shadow-card;
+    @apply btn bg-white dark:bg-[#161a27] text-ink-800 dark:text-ink-200 border border-ink-200 dark:border-ink-700/80 hover:bg-ink-50 dark:hover:bg-ink-800/60 hover:border-ink-300 dark:hover:border-ink-600 px-4 py-2.5 text-sm shadow-card;
   }
   
   .btn-ghost {
-    @apply btn text-ink-700 hover:bg-ink-100 px-3 py-2 text-sm;
+    @apply btn text-ink-700 dark:text-ink-300 hover:bg-ink-100 dark:hover:bg-ink-800/70 px-3 py-2 text-sm;
   }
   
   .chip {
@@ -57,15 +73,15 @@ h1, h2, h3, h4, h5, h6 {
   }
   
   .input {
-    @apply w-full rounded-xl border border-ink-200 bg-white px-3.5 py-2.5 text-sm text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition shadow-card;
+    @apply w-full rounded-xl border border-ink-200 dark:border-ink-700/80 bg-white dark:bg-[#12151f] px-3.5 py-2.5 text-sm text-ink-900 dark:text-ink-100 placeholder:text-ink-400 dark:placeholder:text-ink-500 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition shadow-card;
   }
   
   .label {
-    @apply block text-xs font-bold uppercase tracking-wider text-ink-700 mb-1.5;
+    @apply block text-xs font-bold uppercase tracking-wider text-ink-700 dark:text-ink-300 mb-1.5;
   }
   
   .section-title {
-    @apply text-xs font-bold uppercase tracking-wider text-ink-500;
+    @apply text-xs font-bold uppercase tracking-wider text-ink-500 dark:text-ink-400;
   }
 }
 

@@ -4,6 +4,7 @@ import { AppShell } from '@/components/AppShell';
 import { PageLoader } from '@/components/PageLoader';
 import { AccessRestricted } from '@/components/AccessRestricted';
 import { AuthProvider, useAuth } from '@/lib/authContext';
+import { ThemeProvider } from '@/lib/themeContext';
 
 // Lazy-loaded route components for fast initial bundle delivery and code-splitting
 const AuthPage = lazy(() =>
@@ -66,16 +67,23 @@ const PublicPassportPage = lazy(() =>
 
 function App() {
   return (
-    <AuthProvider>
-      <AppRouter />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <AppRouter />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 
 function AppRouter() {
   const { path } = useRouter();
-  const { profile } = useAuth();
+  const { profile, loading } = useAuth();
   const seg = segments(path);
+
+  // While restoring session or processing OAuth callback
+  if (loading) {
+    return <PageLoader />;
+  }
 
   // Public Skill Passport Route (/passport/:studentId) - No Auth Required
   if (seg[0] === 'passport' && seg[1]) {

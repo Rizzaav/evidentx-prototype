@@ -48,187 +48,292 @@ const LANGUAGE_TO_SKILL: Record<string, string[]> = {
   sql: ['s_sql', 's_database'],
 };
 
-export async function scanGithubRepository(rawInput: string): Promise<GithubScanResult> {
-  const cleaned = rawInput
-    .trim()
-    .replace(/^https?:\/\/github\.com\//i, '')
-    .replace(/\.git$/i, '')
-    .replace(/\/+$/, '');
+/**
+ * Strictly parses and validates a GitHub repository string or URL.
+ * Throws explicit descriptive errors if the input is not a GitHub repository.
+ */
+export function parseGithubRepoInput(rawInput: string): {
+  owner: string;
+  repo: string;
+  fullName: string;
+  repoUrl: string;
+} {
+  const trimmed = rawInput.trim();
+  if (!trimmed) {
+    throw new Error('Please enter a GitHub repository URL or username/repository path.');
+  }
 
-  const parts = cleaned.split('/');
-  const owner = parts[0] || 'developer';
-  const repo = parts[1] || parts[0] || 'project';
+  let pathCandidate = trimmed;
+
+  // Check if a full URL with scheme is provided
+  if (/^https?:\/\//i.test(trimmed)) {
+    try {
+      const parsedUrl = new URL(trimmed);
+      const hostname = parsedUrl.hostname.toLowerCase();
+
+      // STRICT CHECK: Reject any non-github.com domain
+      if (hostname !== 'github.com' && hostname !== 'www.github.com') {
+        throw new Error(
+          `Invalid domain "${parsedUrl.hostname}". EvidentX only verifies public repositories hosted on github.com.`
+        );
+      }
+
+      pathCandidate = parsedUrl.pathname;
+    } catch (e: any) {
+      if (e.message?.includes('EvidentX only verifies')) {
+        throw e;
+      }
+      throw new Error(`Malformed URL provided: "${trimmed}". Please enter a valid GitHub repository URL.`);
+    }
+  } else if (/^github\.com\//i.test(trimmed)) {
+    pathCandidate = trimmed.replace(/^github\.com\//i, '');
+  }
+
+  // Strip leading/trailing slashes and optional .git suffix
+  const cleanedPath = pathCandidate
+    .replace(/^\/+|\/+$/g, '')
+    .replace(/\.git$/i, '');
+
+  const parts = cleanedPath.split('/').filter(Boolean);
+
+  if (parts.length < 2) {
+    throw new Error(
+      `Incomplete repository path. Please provide both the owner and repository name (e.g. facebook/react or https://github.com/facebook/react).`
+    );
+  }
+
+  const owner = parts[0].trim();
+  const repo = parts[1].trim();
+
+  // Validate GitHub username and repository naming conventions
+  const ownerRegex = /^[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38}$/i;
+  const repoRegex = /^[a-z\d_.-]{1,100}$/i;
+
+  if (!ownerRegex.test(owner)) {
+    throw new Error(`Invalid GitHub account or organization name "${owner}".`);
+  }
+
+  if (!repoRegex.test(repo)) {
+    throw new Error(`Invalid GitHub repository name "${repo}".`);
+  }
+
   const fullName = `${owner}/${repo}`;
   const repoUrl = `https://github.com/${fullName}`;
 
-  try {
-    // 1. Fetch Repository Info from GitHub API
-    const repoRes = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
-      headers: {
-        Accept: 'application/vnd.github.v3+json',
-      },
-    });
+  return { owner, repo, fullName, repoUrl };
+}
 
-    if (!repoRes.ok) {
-      throw new Error(`GitHub API HTTP ${repoRes.status}`);
-    }
+export async function scanGithubRepository(rawInput: string): Promise<GithubScanResult> {
+  // Step 1: Validate URL & path syntax strictly
+  const { owner, repo, fullName, repoUrl } = parseGithubRepoInput(rawInput);
 
-    const repoData = await repoRes.json();
-
-    // 2. Fetch Language Breakdown
-    let languages: GithubLanguageBreakdown[] = [];
-    try {
-      const langRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/languages`);
-      if (langRes.ok) {
-        const langData: Record<string, number> = await langRes.json();
-        const totalBytes = Object.values(langData).reduce((a, b) => a + b, 0) || 1;
-        languages = Object.entries(langData)
-          .map(([lang, bytes]) => ({
-            language: lang,
-            bytes,
-            percentage: Math.round((bytes / totalBytes) * 100),
-          }))
-          .sort((a, b) => b.bytes - a.bytes);
-      }
-    } catch {
-      // Ignore secondary language fetch failure
-    }
-
-    // 3. Fetch Recent Commits
-    let commitSummary = 'Verified commit activity';
-    try {
-      const commitRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/commits?per_page=5`);
-      if (commitRes.ok) {
-        const commits = await commitRes.json();
-        if (Array.isArray(commits) && commits.length > 0) {
-          commitSummary = `${commits.length}+ recent verified commits by ${commits[0]?.commit?.author?.name || owner}`;
-        }
-      }
-    } catch {
-      // Ignore secondary commit fetch failure
-    }
-
-    // 4. Competency mapping based on real GitHub data
-    const detectedSkillSet = new Set<string>();
-    const strengths: Record<string, number> = {};
-
-    // Always detect Git for real GitHub repositories
-    detectedSkillSet.add('s_git');
-    strengths['s_git'] = Math.min(98, 85 + Math.min(repoData.stargazers_count, 10));
-
-    // Map detected languages
-    for (const langItem of languages) {
-      const lowLang = langItem.language.toLowerCase();
-      const mappedSkills = LANGUAGE_TO_SKILL[lowLang] || [];
-      for (const sk of mappedSkills) {
-        if (skillMap[sk]) {
-          detectedSkillSet.add(sk);
-          const base = 82;
-          const shareBonus = Math.min(14, Math.round(langItem.percentage / 7));
-          strengths[sk] = Math.min(96, base + shareBonus);
-        }
-      }
-    }
-
-    // Text analysis on description + topics
-    const textBlob = `${repoData.description || ''} ${(repoData.topics || []).join(' ')} ${repoData.name}`.toLowerCase();
-    
-    if (textBlob.includes('react') || textBlob.includes('frontend') || textBlob.includes('next')) {
-      detectedSkillSet.add('s_react');
-      strengths['s_react'] = Math.max(strengths['s_react'] || 0, 90);
-    }
-    if (textBlob.includes('node') || textBlob.includes('express') || textBlob.includes('backend') || textBlob.includes('api')) {
-      detectedSkillSet.add('s_node');
-      strengths['s_node'] = Math.max(strengths['s_node'] || 0, 88);
-    }
-    if (textBlob.includes('docker') || textBlob.includes('kubernetes') || textBlob.includes('ci/cd')) {
-      detectedSkillSet.add('s_docker');
-      strengths['s_docker'] = Math.max(strengths['s_docker'] || 0, 86);
-    }
-    if (textBlob.includes('aws') || textBlob.includes('cloud') || textBlob.includes('s3') || textBlob.includes('serverless')) {
-      detectedSkillSet.add('s_aws');
-      strengths['s_aws'] = Math.max(strengths['s_aws'] || 0, 85);
-    }
-    if (textBlob.includes('sql') || textBlob.includes('postgres') || textBlob.includes('prisma') || textBlob.includes('database')) {
-      detectedSkillSet.add('s_sql');
-      strengths['s_sql'] = Math.max(strengths['s_sql'] || 0, 88);
-    }
-    if (textBlob.includes('ml') || textBlob.includes('machine learning') || textBlob.includes('ai') || textBlob.includes('pytorch') || textBlob.includes('tensorflow')) {
-      detectedSkillSet.add('s_ml');
-      strengths['s_ml'] = Math.max(strengths['s_ml'] || 0, 91);
-    }
-    if (textBlob.includes('figma') || textBlob.includes('ui') || textBlob.includes('design') || textBlob.includes('tailwind')) {
-      detectedSkillSet.add('s_uiux');
-      strengths['s_uiux'] = Math.max(strengths['s_uiux'] || 0, 87);
-    }
-
-    if (detectedSkillSet.size === 1) {
-      // If only Git, add problem solving
-      detectedSkillSet.add('s_problem');
-      strengths['s_problem'] = 84;
-    }
-
-    const detectedSkills = Array.from(detectedSkillSet);
-    const meanStrength = Math.round(
-      Object.values(strengths).reduce((a, b) => a + b, 0) / (Object.values(strengths).length || 1)
-    );
-
-    return {
-      repoName: repoData.name,
-      fullName: repoData.full_name,
-      owner: repoData.owner?.login || owner,
-      url: repoData.html_url || repoUrl,
-      description: repoData.description || `Production repository '${repoData.name}' verified via GitHub API.`,
-      stars: repoData.stargazers_count ?? 0,
-      forks: repoData.forks_count ?? 0,
-      defaultBranch: repoData.default_branch || 'main',
-      pushedAt: repoData.pushed_at || new Date().toISOString(),
-      languages,
-      topics: repoData.topics || [],
-      detectedSkills,
-      skillStrengths: strengths,
-      meanStrength,
-      commitCountSummary: commitSummary,
-      license: repoData.license?.spdx_id || repoData.license?.name,
-      isRealApiResult: true,
-      statusMessage: `Live GitHub REST API: Verified '${repoData.full_name}' with ${languages.length} languages and ${detectedSkills.length} demonstrated competencies.`,
-    };
-  } catch (err: any) {
-    // Graceful Intelligent Heuristic Fallback
-    console.warn('GitHub API fallback triggered:', err.message);
-
-    const detectedSkillSet = new Set<string>(['s_git', 's_react', 's_ts', 's_node', 's_docker']);
-    const fallbackStrengths: Record<string, number> = {
-      s_git: 94,
-      s_react: 88,
-      s_ts: 90,
-      s_node: 85,
-      s_docker: 82,
-    };
-
-    return {
-      repoName: repo,
-      fullName: `${owner}/${repo}`,
-      owner,
-      url: repoUrl,
-      description: `Verified repository structure for '${owner}/${repo}'. Full-stack application with automated testing and continuous integration.`,
-      stars: 12,
-      forks: 3,
-      defaultBranch: 'main',
-      pushedAt: new Date().toISOString(),
-      languages: [
-        { language: 'TypeScript', bytes: 48200, percentage: 65 },
-        { language: 'JavaScript', bytes: 18400, percentage: 25 },
-        { language: 'CSS', bytes: 7400, percentage: 10 },
-      ],
-      topics: ['react', 'typescript', 'vite', 'fullstack'],
-      detectedSkills: Array.from(detectedSkillSet),
-      skillStrengths: fallbackStrengths,
-      meanStrength: 88,
-      commitCountSummary: 'Verified 42+ commits with branch integrity',
-      license: 'MIT',
-      isRealApiResult: false,
-      statusMessage: `Repository '${owner}/${repo}' verified via AST code inspection heuristics (5 skills mapped).`,
-    };
+  // Check optional GitHub token for elevated rate limits if configured
+  const githubToken =
+    (import.meta.env.VITE_GITHUB_TOKEN || import.meta.env.GITHUB_TOKEN || '') as string;
+  const authHeaders: HeadersInit = {
+    Accept: 'application/vnd.github.v3+json',
+  };
+  if (githubToken && githubToken.trim().length > 0) {
+    authHeaders['Authorization'] = `token ${githubToken.trim()}`;
   }
+
+  // Step 2: Fetch Repository Info from GitHub REST API
+  let repoRes: Response;
+  try {
+    repoRes = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
+      headers: authHeaders,
+    });
+  } catch (networkErr: any) {
+    throw new Error(
+      `Network connection failed while contacting GitHub API. Please check your internet connectivity.`
+    );
+  }
+
+  // Step 3: Strictly enforce existence checks
+  if (repoRes.status === 404) {
+    throw new Error(
+      `GitHub repository "${fullName}" was not found (HTTP 404). Please verify that the repository exists and is public.`
+    );
+  }
+
+  if (repoRes.status === 403) {
+    const rateLimitRemaining = repoRes.headers.get('x-ratelimit-remaining');
+    if (rateLimitRemaining === '0') {
+      const resetTimestamp = repoRes.headers.get('x-ratelimit-reset');
+      const resetTime = resetTimestamp
+        ? new Date(parseInt(resetTimestamp, 10) * 1000).toLocaleTimeString()
+        : 'shortly';
+      throw new Error(
+        `GitHub API rate limit exceeded (60 req/hr for unauthenticated IP). Resets at ${resetTime}.`
+      );
+    }
+    throw new Error(`GitHub API returned HTTP 403 Forbidden. Access to "${fullName}" is restricted.`);
+  }
+
+  if (!repoRes.ok) {
+    throw new Error(
+      `GitHub API request failed with HTTP ${repoRes.status}: ${repoRes.statusText || 'Unable to fetch repository'}`
+    );
+  }
+
+  const repoData = await repoRes.json();
+
+  // Step 4: Fetch Language Breakdown
+  let languages: GithubLanguageBreakdown[] = [];
+  try {
+    const langRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/languages`, {
+      headers: authHeaders,
+    });
+    if (langRes.ok) {
+      const langData: Record<string, number> = await langRes.json();
+      const totalBytes = Object.values(langData).reduce((a, b) => a + b, 0) || 1;
+      languages = Object.entries(langData)
+        .map(([lang, bytes]) => ({
+          language: lang,
+          bytes,
+          percentage: Math.round((bytes / totalBytes) * 100),
+        }))
+        .sort((a, b) => b.bytes - a.bytes);
+    }
+  } catch {
+    // Gracefully handle secondary language breakdown fetch failure
+  }
+
+  // Step 5: Fetch Recent Commits
+  let commitSummary = 'Verified commit activity';
+  try {
+    const commitRes = await fetch(
+      `https://api.github.com/repos/${owner}/${repo}/commits?per_page=5`,
+      { headers: authHeaders }
+    );
+    if (commitRes.ok) {
+      const commits = await commitRes.json();
+      if (Array.isArray(commits) && commits.length > 0) {
+        commitSummary = `${commits.length}+ recent verified commits by ${
+          commits[0]?.commit?.author?.name || owner
+        }`;
+      }
+    }
+  } catch {
+    // Gracefully handle secondary commit fetch failure
+  }
+
+  // Step 6: Competency mapping based on real GitHub data
+  const detectedSkillSet = new Set<string>();
+  const strengths: Record<string, number> = {};
+
+  // Always detect Git for verified GitHub repositories
+  detectedSkillSet.add('s_git');
+  strengths['s_git'] = Math.min(98, 85 + Math.min(repoData.stargazers_count ?? 0, 10));
+
+  // Map detected languages
+  for (const langItem of languages) {
+    const lowLang = langItem.language.toLowerCase();
+    const mappedSkills = LANGUAGE_TO_SKILL[lowLang] || [];
+    for (const sk of mappedSkills) {
+      if (skillMap[sk]) {
+        detectedSkillSet.add(sk);
+        const base = 82;
+        const shareBonus = Math.min(14, Math.round(langItem.percentage / 7));
+        strengths[sk] = Math.min(96, base + shareBonus);
+      }
+    }
+  }
+
+  // Text analysis on description + topics
+  const textBlob = `${repoData.description || ''} ${(repoData.topics || []).join(' ')} ${
+    repoData.name
+  }`.toLowerCase();
+
+  if (textBlob.includes('react') || textBlob.includes('frontend') || textBlob.includes('next')) {
+    detectedSkillSet.add('s_react');
+    strengths['s_react'] = Math.max(strengths['s_react'] || 0, 90);
+  }
+  if (
+    textBlob.includes('node') ||
+    textBlob.includes('express') ||
+    textBlob.includes('backend') ||
+    textBlob.includes('api')
+  ) {
+    detectedSkillSet.add('s_node');
+    strengths['s_node'] = Math.max(strengths['s_node'] || 0, 88);
+  }
+  if (
+    textBlob.includes('docker') ||
+    textBlob.includes('kubernetes') ||
+    textBlob.includes('ci/cd')
+  ) {
+    detectedSkillSet.add('s_docker');
+    strengths['s_docker'] = Math.max(strengths['s_docker'] || 0, 86);
+  }
+  if (
+    textBlob.includes('aws') ||
+    textBlob.includes('cloud') ||
+    textBlob.includes('s3') ||
+    textBlob.includes('serverless')
+  ) {
+    detectedSkillSet.add('s_aws');
+    strengths['s_aws'] = Math.max(strengths['s_aws'] || 0, 85);
+  }
+  if (
+    textBlob.includes('sql') ||
+    textBlob.includes('postgres') ||
+    textBlob.includes('prisma') ||
+    textBlob.includes('database')
+  ) {
+    detectedSkillSet.add('s_sql');
+    strengths['s_sql'] = Math.max(strengths['s_sql'] || 0, 88);
+  }
+  if (
+    textBlob.includes('ml') ||
+    textBlob.includes('machine learning') ||
+    textBlob.includes('ai') ||
+    textBlob.includes('pytorch') ||
+    textBlob.includes('tensorflow')
+  ) {
+    detectedSkillSet.add('s_ml');
+    strengths['s_ml'] = Math.max(strengths['s_ml'] || 0, 91);
+  }
+  if (
+    textBlob.includes('figma') ||
+    textBlob.includes('ui') ||
+    textBlob.includes('design') ||
+    textBlob.includes('tailwind')
+  ) {
+    detectedSkillSet.add('s_uiux');
+    strengths['s_uiux'] = Math.max(strengths['s_uiux'] || 0, 87);
+  }
+
+  if (detectedSkillSet.size === 1) {
+    // If only Git, add problem solving
+    detectedSkillSet.add('s_problem');
+    strengths['s_problem'] = 84;
+  }
+
+  const detectedSkills = Array.from(detectedSkillSet);
+  const meanStrength = Math.round(
+    Object.values(strengths).reduce((a, b) => a + b, 0) / (Object.values(strengths).length || 1)
+  );
+
+  return {
+    repoName: repoData.name,
+    fullName: repoData.full_name,
+    owner: repoData.owner?.login || owner,
+    url: repoData.html_url || repoUrl,
+    description:
+      repoData.description || `Production repository '${repoData.name}' verified via GitHub API.`,
+    stars: repoData.stargazers_count ?? 0,
+    forks: repoData.forks_count ?? 0,
+    defaultBranch: repoData.default_branch || 'main',
+    pushedAt: repoData.pushed_at || new Date().toISOString(),
+    languages,
+    topics: repoData.topics || [],
+    detectedSkills,
+    skillStrengths: strengths,
+    meanStrength,
+    commitCountSummary: commitSummary,
+    license: repoData.license?.spdx_id || repoData.license?.name,
+    isRealApiResult: true,
+    statusMessage: `Live GitHub REST API: Verified '${repoData.full_name}' with ${languages.length} languages and ${detectedSkills.length} demonstrated competencies.`,
+  };
 }
