@@ -23,6 +23,17 @@ import {
   UserCheck,
   Send,
   RotateCcw,
+  Globe,
+  Filter,
+  Bookmark,
+  ExternalLink,
+  Mail,
+  Star,
+  Award,
+  BookOpen,
+  GraduationCap,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { useRouter } from '@/lib/router';
 import {
@@ -35,12 +46,23 @@ import {
   Section,
   MatchRing,
 } from '@/components/ui';
-import { opportunityMap, studentMap, skillMap, evidenceMap } from '@/data/mockData';
+import {
+  opportunityMap,
+  studentMap,
+  skillMap,
+  evidenceMap,
+  getAllStudents,
+  getStudentSkills,
+  getStudentEvidence,
+  SKILLS,
+} from '@/data/mockData';
 import { useCustomOpportunities } from '@/lib/customOpportunities';
 import { useApplications } from '@/lib/applications';
+import { useNotifications } from '@/lib/notifications';
+import { useToast } from '@/lib/toast';
 import { useDebounce } from '@/lib/useDebounce';
 import { rankStudentsForOpportunity, matchStudentToOpportunity } from '@/lib/matchingEngine';
-import type { MatchResult, ApplicationStatus, Opportunity } from '@/types';
+import type { MatchResult, ApplicationStatus, Opportunity, Student } from '@/types';
 
 export function CandidateMatchingPage({ opportunityId }: { opportunityId?: string }) {
   const { navigate } = useRouter();
@@ -59,6 +81,84 @@ export function CandidateMatchingPage({ opportunityId }: { opportunityId?: strin
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
   const [showCompareModal, setShowCompareModal] = useState(false);
   const [bulkFeedback, setBulkFeedback] = useState<string | null>(null);
+
+  const { toast } = useToast();
+
+  // Top Page Tab: 'opportunity' | 'directory'
+  const [pageTab, setPageTab] = useState<'opportunity' | 'directory'>('opportunity');
+
+  // Global Talent Directory Filters State
+  const [dirQuery, setDirQuery] = useState('');
+  const debouncedDirQuery = useDebounce(dirQuery, 180);
+  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+  const [minProficiency, setMinProficiency] = useState<number>(0);
+  const [selectedUniversity, setSelectedUniversity] = useState<string>('all');
+  const [bookmarkedIds, setBookmarkedIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('evx_bookmarked_talents');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [outreachStudent, setOutreachStudent] = useState<Student | null>(null);
+
+  const allStudents = useMemo(() => getAllStudents(), []);
+  const allUniversities = useMemo(() => {
+    const set = new Set<string>();
+    for (const s of allStudents) {
+      if (s.university) set.add(s.university);
+    }
+    return Array.from(set).sort();
+  }, [allStudents]);
+
+  const toggleBookmark = (id: string) => {
+    setBookmarkedIds((prev) => {
+      const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+      localStorage.setItem('evx_bookmarked_talents', JSON.stringify(next));
+      toast.success(prev.includes(id) ? 'Removed from bookmarked talent' : 'Candidate added to talent bookmarks!');
+      return next;
+    });
+  };
+
+  const toggleFilterSkill = (skillId: string) => {
+    setSelectedSkills((prev) =>
+      prev.includes(skillId) ? prev.filter((s) => s !== skillId) : [...prev, skillId]
+    );
+  };
+
+  // Filtered Global Directory Candidates
+  const filteredDirectory = useMemo(() => {
+    return allStudents.filter((s) => {
+      if (debouncedDirQuery.trim()) {
+        const q = debouncedDirQuery.toLowerCase().trim();
+        const matchesName = s.name.toLowerCase().includes(q);
+        const matchesProg = s.program.toLowerCase().includes(q);
+        const matchesUni = s.university.toLowerCase().includes(q);
+        const matchesBio = s.bio.toLowerCase().includes(q);
+        if (!matchesName && !matchesProg && !matchesUni && !matchesBio) return false;
+      }
+
+      if (selectedUniversity !== 'all' && s.university !== selectedUniversity) {
+        return false;
+      }
+
+      const sSkills = getStudentSkills(s.id);
+
+      if (selectedSkills.length > 0) {
+        const hasAll = selectedSkills.every((skId) => {
+          const found = sSkills.find((sk) => sk.skillId === skId);
+          return found && (minProficiency === 0 || found.proficiency >= minProficiency);
+        });
+        if (!hasAll) return false;
+      } else if (minProficiency > 0) {
+        const hasAny = sSkills.some((sk) => sk.proficiency >= minProficiency);
+        if (!hasAny) return false;
+      }
+
+      return true;
+    });
+  }, [allStudents, debouncedDirQuery, selectedUniversity, selectedSkills, minProficiency]);
 
   const opp =
     opportunityMap[selectedOpp] ??
@@ -240,8 +340,340 @@ export function CandidateMatchingPage({ opportunityId }: { opportunityId?: strin
         }
       />
 
-      {/* Opportunity selector */}
-      <div className="mb-5 flex items-center gap-2 overflow-x-auto pb-2">
+      {/* Top View Selector Tabs */}
+      <div className="mb-6 flex rounded-2xl bg-ink-100 dark:bg-ink-800 p-1.5 max-w-md border border-ink-200 dark:border-ink-700">
+        <button
+          onClick={() => setPageTab('opportunity')}
+          className={`flex-1 py-2 text-xs font-bold rounded-xl transition flex items-center justify-center gap-2 ${
+            pageTab === 'opportunity'
+              ? 'bg-white dark:bg-ink-900 text-ink-950 dark:text-white shadow-xs'
+              : 'text-ink-600 dark:text-ink-400 hover:text-ink-900 dark:hover:text-white'
+          }`}
+        >
+          <Building2 className="h-3.5 w-3.5 text-brand-600 dark:text-brand-400" />
+          Opportunity Pipeline
+        </button>
+        <button
+          onClick={() => setPageTab('directory')}
+          className={`flex-1 py-2 text-xs font-bold rounded-xl transition flex items-center justify-center gap-2 ${
+            pageTab === 'directory'
+              ? 'bg-white dark:bg-ink-900 text-ink-950 dark:text-white shadow-xs'
+              : 'text-ink-600 dark:text-ink-400 hover:text-ink-900 dark:hover:text-white'
+          }`}
+        >
+          <Globe className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+          Global Talent Directory
+          <span className="rounded-full bg-emerald-100 dark:bg-emerald-950/60 px-1.5 py-0.5 text-[10px] font-extrabold text-emerald-700 dark:text-emerald-300">
+            {allStudents.length}
+          </span>
+        </button>
+      </div>
+
+      {pageTab === 'directory' ? (
+        <div className="space-y-6">
+          {/* Filter Bar */}
+          <Card className="p-5 border-ink-200 dark:border-ink-800">
+            <div className="grid gap-4 sm:grid-cols-3">
+              {/* Keyword Search */}
+              <div>
+                <label className="block text-xs font-semibold text-ink-700 dark:text-ink-300 mb-1">
+                  Search Talent
+                </label>
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-ink-400" />
+                  <input
+                    type="text"
+                    value={dirQuery}
+                    onChange={(e) => setDirQuery(e.target.value)}
+                    placeholder="Name, degree, keyword..."
+                    className="w-full rounded-xl border border-ink-200 dark:border-ink-700 bg-white dark:bg-ink-900 pl-9 pr-3 py-2 text-xs text-ink-900 dark:text-white placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  />
+                  {dirQuery && (
+                    <button
+                      onClick={() => setDirQuery('')}
+                      className="absolute right-2.5 top-2.5 text-ink-400 hover:text-ink-600"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* University Selector */}
+              <div>
+                <label className="block text-xs font-semibold text-ink-700 dark:text-ink-300 mb-1">
+                  University / Institution
+                </label>
+                <select
+                  value={selectedUniversity}
+                  onChange={(e) => setSelectedUniversity(e.target.value)}
+                  className="w-full rounded-xl border border-ink-200 dark:border-ink-700 bg-white dark:bg-ink-900 px-3 py-2 text-xs text-ink-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+                >
+                  <option value="all">All Universities ({allUniversities.length})</option>
+                  {allUniversities.map((u) => (
+                    <option key={u} value={u}>{u}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Minimum Proficiency Threshold */}
+              <div>
+                <label className="block text-xs font-semibold text-ink-700 dark:text-ink-300 mb-1">
+                  Minimum Proficiency: {minProficiency > 0 ? `${minProficiency}%+` : 'Any'}
+                </label>
+                <select
+                  value={minProficiency}
+                  onChange={(e) => setMinProficiency(Number(e.target.value))}
+                  className="w-full rounded-xl border border-ink-200 dark:border-ink-700 bg-white dark:bg-ink-900 px-3 py-2 text-xs text-ink-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+                >
+                  <option value={0}>Any Demonstrated Proficiency</option>
+                  <option value={50}>50%+ (Practitioner)</option>
+                  <option value={70}>70%+ (Verified Production-Ready)</option>
+                  <option value={85}>85%+ (Elite / Advanced)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Direct Skill Tag Filters */}
+            <div className="mt-4 pt-4 border-t border-ink-100 dark:border-ink-800">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-ink-500 dark:text-ink-400 flex items-center gap-1.5">
+                  <Filter className="h-3.5 w-3.5" /> Filter by Verified Competencies
+                </span>
+                {selectedSkills.length > 0 && (
+                  <button
+                    onClick={() => setSelectedSkills([])}
+                    className="text-xs text-brand-600 dark:text-brand-400 hover:underline"
+                  >
+                    Clear skill filters ({selectedSkills.length})
+                  </button>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {SKILLS.map((sk) => {
+                  const active = selectedSkills.includes(sk.id);
+                  return (
+                    <button
+                      key={sk.id}
+                      type="button"
+                      onClick={() => toggleFilterSkill(sk.id)}
+                      className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
+                        active
+                          ? 'bg-brand-600 text-white shadow-2xs'
+                          : 'bg-ink-100 dark:bg-ink-800 text-ink-600 dark:text-ink-300 hover:bg-ink-200 dark:hover:bg-ink-700'
+                      }`}
+                    >
+                      {sk.name}
+                      {active && <Check className="h-3 w-3" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </Card>
+
+          {/* Results Summary */}
+          <div className="flex items-center justify-between text-xs text-ink-500 dark:text-ink-400">
+            <span>
+              Showing <strong>{filteredDirectory.length}</strong> of {allStudents.length} candidates in global talent pool
+            </span>
+            {bookmarkedIds.length > 0 && (
+              <span className="inline-flex items-center gap-1 font-semibold text-amber-600 dark:text-amber-400">
+                <Bookmark className="h-3.5 w-3.5 fill-amber-500 text-amber-500" /> {bookmarkedIds.length} Bookmarked
+              </span>
+            )}
+          </div>
+
+          {/* Candidates Grid */}
+          {filteredDirectory.length === 0 ? (
+            <EmptyState
+              title="No matching candidates found"
+              description="Try broadening your search query or removing some of the selected skill filters."
+              action={
+                <button
+                  onClick={() => {
+                    setDirQuery('');
+                    setSelectedSkills([]);
+                    setMinProficiency(0);
+                    setSelectedUniversity('all');
+                  }}
+                  className="btn-secondary text-xs"
+                >
+                  Reset all filters
+                </button>
+              }
+            />
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2">
+              {filteredDirectory.map((student) => {
+                const sSkills = getStudentSkills(student.id);
+                const sEvidence = getStudentEvidence(student.id);
+                const verifiedEvidence = sEvidence.filter((e) => e.verification === 'verified');
+                const isBookmarked = bookmarkedIds.includes(student.id);
+
+                return (
+                  <Card key={student.id} className="p-5 flex flex-col justify-between hover:shadow-lift transition border-ink-200 dark:border-ink-800">
+                    <div>
+                      {/* Header */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <Avatar name={student.name} color={student.avatarColor} photoUrl={student.photoUrl} size="lg" />
+                          <div>
+                            <div className="font-semibold text-ink-950 dark:text-white text-base leading-tight">
+                              {student.name}
+                            </div>
+                            <div className="text-xs text-ink-500 dark:text-ink-400 mt-0.5">
+                              {student.program} · {student.year}
+                            </div>
+                            <div className="text-xs text-ink-600 dark:text-ink-300 font-medium">
+                              {student.university}
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => toggleBookmark(student.id)}
+                          className={`p-1.5 rounded-lg border transition ${
+                            isBookmarked
+                              ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 text-amber-600'
+                              : 'border-ink-200 dark:border-ink-700 text-ink-400 hover:text-ink-600 dark:hover:text-ink-200'
+                          }`}
+                          title={isBookmarked ? 'Remove bookmark' : 'Bookmark candidate'}
+                        >
+                          <Bookmark className={`h-4 w-4 ${isBookmarked ? 'fill-amber-500 text-amber-500' : ''}`} />
+                        </button>
+                      </div>
+
+                      {/* Bio */}
+                      <p className="mt-3 text-xs text-ink-600 dark:text-ink-300 line-clamp-2 leading-relaxed">
+                        {student.bio}
+                      </p>
+
+                      {/* Verified Skills */}
+                      <div className="mt-3">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-ink-400 dark:text-ink-500 mb-1.5">
+                          Verified Skill Claims ({sSkills.length})
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {sSkills.slice(0, 5).map((sk) => {
+                            const isMatch = selectedSkills.includes(sk.skillId);
+                            return (
+                              <span
+                                key={sk.skillId}
+                                className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold border ${
+                                  isMatch
+                                    ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 text-emerald-700 dark:text-emerald-300 font-bold'
+                                    : 'bg-ink-50 dark:bg-ink-800 border-ink-200 dark:border-ink-700 text-ink-700 dark:text-ink-300'
+                                }`}
+                              >
+                                {skillMap[sk.skillId]?.name || sk.skillId}
+                                <span className="text-[10px] opacity-75">{sk.proficiency}%</span>
+                              </span>
+                            );
+                          })}
+                          {sSkills.length > 5 && (
+                            <span className="text-[11px] text-ink-400 self-center">
+                              +{sSkills.length - 5} more
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Proof metrics */}
+                      <div className="mt-3 flex items-center gap-4 text-xs text-ink-500 dark:text-ink-400 border-t border-ink-100 dark:border-ink-800/80 pt-2.5">
+                        <span className="inline-flex items-center gap-1">
+                          <FileBadge className="h-3.5 w-3.5 text-brand-600 dark:text-brand-400" />
+                          <strong>{verifiedEvidence.length}</strong> Verified Artifacts
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                          SHA-256 Attested
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="mt-4 pt-3 border-t border-ink-100 dark:border-ink-800 flex items-center justify-between gap-2">
+                      <button
+                        onClick={() => navigate(`/passport/${student.id}`)}
+                        className="btn-secondary text-xs inline-flex items-center gap-1.5 flex-1 justify-center"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" /> View Passport
+                      </button>
+                      <button
+                        onClick={() => setOutreachStudent(student)}
+                        className="btn-primary text-xs inline-flex items-center gap-1.5 flex-1 justify-center"
+                      >
+                        <Mail className="h-3.5 w-3.5" /> Direct Outreach
+                      </button>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Direct Talent Outreach Modal */}
+          {outreachStudent && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-950/60 backdrop-blur-sm animate-in fade-in duration-150">
+              <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white dark:bg-ink-900 shadow-2xl border border-ink-100 dark:border-ink-800 p-6 sm:p-8">
+                <div className="flex items-start justify-between gap-4 border-b border-ink-100 dark:border-ink-800 pb-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500/10 text-brand-600 dark:text-brand-400">
+                        <Mail className="h-4 w-4" />
+                      </span>
+                      <Chip color="brand">Direct Talent Outreach</Chip>
+                    </div>
+                    <h3 className="mt-2 text-xl font-display font-extrabold text-ink-950 dark:text-white">
+                      Connect with {outreachStudent.name}
+                    </h3>
+                    <p className="text-xs text-ink-500 dark:text-ink-400">
+                      {outreachStudent.program} · {outreachStudent.university} · {outreachStudent.email}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setOutreachStudent(null)}
+                    className="rounded-lg p-1.5 text-ink-400 hover:text-ink-700 dark:hover:text-ink-200 hover:bg-ink-50 dark:hover:bg-ink-800 transition"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                <div className="mt-5 space-y-3">
+                  <div className="rounded-xl bg-ink-50 dark:bg-ink-800/50 p-3 text-xs text-ink-700 dark:text-ink-300">
+                    <p className="font-semibold text-ink-900 dark:text-white mb-1">Pre-composed direct invitation:</p>
+                    <p className="font-mono text-[11px] leading-relaxed">
+                      {`Hi ${outreachStudent.name},\n\nWe discovered your verified profile on EvidentX and were impressed by your verified achievements and skills in ${getStudentSkills(outreachStudent.id).slice(0, 3).map(s => skillMap[s.skillId]?.name || s.skillId).join(', ')}. We have high-impact engineering opportunities and would love to connect!\n\nBest regards,\nRecruiting Team`}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-6 flex flex-wrap items-center justify-end gap-2 border-t border-ink-100 dark:border-ink-800 pt-4">
+                  <button
+                    onClick={() => {
+                      const text = `Hi ${outreachStudent.name},\n\nWe discovered your verified profile on EvidentX and were impressed by your verified achievements and skills in ${getStudentSkills(outreachStudent.id).slice(0, 3).map(s => skillMap[s.skillId]?.name || s.skillId).join(', ')}. We have high-impact engineering opportunities and would love to connect!\n\nBest regards,\nRecruiting Team`;
+                      navigator.clipboard.writeText(text);
+                      toast.success('Invitation text copied to clipboard!');
+                    }}
+                    className="btn-secondary text-xs inline-flex items-center gap-1.5"
+                  >
+                    <Copy className="h-3.5 w-3.5" /> Copy Message
+                  </button>
+                  <a
+                    href={`mailto:${outreachStudent.email}?subject=${encodeURIComponent('Career Opportunity via EvidentX')}&body=${encodeURIComponent(`Hi ${outreachStudent.name},\n\nWe discovered your verified profile on EvidentX and were impressed by your verified achievements in ${getStudentSkills(outreachStudent.id).slice(0, 3).map(s => skillMap[s.skillId]?.name || s.skillId).join(', ')}. We would love to discuss an opportunity.\n\nBest regards,\nRecruiting Team`)}`}
+                    className="btn-primary text-xs inline-flex items-center gap-1.5"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" /> Open in Mail App
+                  </a>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
+          {/* Opportunity selector */}
+          <div className="mb-5 flex items-center gap-2 overflow-x-auto pb-2">
         <span className="text-xs font-bold uppercase tracking-wide text-ink-400 flex-shrink-0">
           Opportunity:
         </span>
@@ -256,8 +688,8 @@ export function CandidateMatchingPage({ opportunityId }: { opportunityId?: strin
               }}
               className={`flex-shrink-0 rounded-xl border px-3 py-2 text-xs font-semibold transition ${
                 active
-                  ? 'border-accent-300 bg-accent-50 text-accent-700'
-                  : 'border-ink-200 bg-white text-ink-600 hover:bg-ink-50'
+                  ? 'border-accent-300 dark:border-accent-600 bg-accent-50 dark:bg-accent-950/40 text-accent-700 dark:text-accent-300'
+                  : 'border-ink-200 dark:border-[#30363d] bg-white dark:bg-[#161b22] text-ink-600 dark:text-[#c9d1d9] hover:bg-ink-50 dark:hover:bg-[#21262d]'
               }`}
             >
               {o.title}
@@ -348,8 +780,8 @@ export function CandidateMatchingPage({ opportunityId }: { opportunityId?: strin
               onClick={() => setStatusStage('all')}
               className={`rounded-xl px-3 py-1.5 text-xs font-bold transition whitespace-nowrap ${
                 statusStage === 'all'
-                  ? 'bg-ink-900 text-white shadow-soft'
-                  : 'bg-white border border-ink-200 text-ink-700 hover:bg-ink-50'
+                  ? 'bg-ink-900 dark:bg-white dark:text-ink-900 text-white shadow-soft'
+                  : 'bg-white dark:bg-[#161b22] border border-ink-200 dark:border-[#30363d] text-ink-700 dark:text-[#c9d1d9] hover:bg-ink-50 dark:hover:bg-[#21262d]'
               }`}
             >
               All Matched ({ranked.length})
@@ -359,11 +791,11 @@ export function CandidateMatchingPage({ opportunityId }: { opportunityId?: strin
               className={`rounded-xl px-3 py-1.5 text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap ${
                 statusStage === 'Shortlisted'
                   ? 'bg-brand-600 text-white shadow-soft'
-                  : 'bg-white border border-ink-200 text-brand-700 hover:bg-brand-50'
+                  : 'bg-white dark:bg-[#161b22] border border-ink-200 dark:border-[#30363d] text-brand-700 dark:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-950/40'
               }`}
             >
               <span>⭐ Shortlisted</span>
-              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${statusStage === 'Shortlisted' ? 'bg-white/25 text-white' : 'bg-brand-100 text-brand-800'}`}>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${statusStage === 'Shortlisted' ? 'bg-white/25 text-white' : 'bg-brand-100 dark:bg-brand-950/70 text-brand-800 dark:text-brand-300'}`}>
                 {stageBuckets.shortlisted.length}
               </span>
             </button>
@@ -372,11 +804,11 @@ export function CandidateMatchingPage({ opportunityId }: { opportunityId?: strin
               className={`rounded-xl px-3 py-1.5 text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap ${
                 statusStage === 'Interviewing'
                   ? 'bg-amber-600 text-white shadow-soft'
-                  : 'bg-white border border-ink-200 text-amber-800 hover:bg-amber-50'
+                  : 'bg-white dark:bg-[#161b22] border border-ink-200 dark:border-[#30363d] text-amber-800 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40'
               }`}
             >
               <span>🎙️ Interviewing</span>
-              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${statusStage === 'Interviewing' ? 'bg-white/25 text-white' : 'bg-amber-100 text-amber-900'}`}>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${statusStage === 'Interviewing' ? 'bg-white/25 text-white' : 'bg-amber-100 dark:bg-amber-950/70 text-amber-900 dark:text-amber-300'}`}>
                 {stageBuckets.interviewing.length}
               </span>
             </button>
@@ -385,11 +817,11 @@ export function CandidateMatchingPage({ opportunityId }: { opportunityId?: strin
               className={`rounded-xl px-3 py-1.5 text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap ${
                 statusStage === 'Offered'
                   ? 'bg-emerald-600 text-white shadow-soft'
-                  : 'bg-white border border-ink-200 text-emerald-800 hover:bg-emerald-50'
+                  : 'bg-white dark:bg-[#161b22] border border-ink-200 dark:border-[#30363d] text-emerald-800 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40'
               }`}
             >
               <span>🏆 Offered</span>
-              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${statusStage === 'Offered' ? 'bg-white/25 text-white' : 'bg-emerald-100 text-emerald-900'}`}>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${statusStage === 'Offered' ? 'bg-white/25 text-white' : 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-900 dark:text-emerald-300'}`}>
                 {stageBuckets.offered.length}
               </span>
             </button>
@@ -398,11 +830,11 @@ export function CandidateMatchingPage({ opportunityId }: { opportunityId?: strin
               className={`rounded-xl px-3 py-1.5 text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap ${
                 statusStage === 'Applied'
                   ? 'bg-accent-600 text-white shadow-soft'
-                  : 'bg-white border border-ink-200 text-accent-800 hover:bg-accent-50'
+                  : 'bg-white dark:bg-[#161b22] border border-ink-200 dark:border-[#30363d] text-accent-800 dark:text-accent-400 hover:bg-accent-50 dark:hover:bg-accent-950/40'
               }`}
             >
               <span>📋 Applied / In Review</span>
-              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${statusStage === 'Applied' ? 'bg-white/25 text-white' : 'bg-accent-100 text-accent-900'}`}>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${statusStage === 'Applied' ? 'bg-white/25 text-white' : 'bg-accent-100 dark:bg-accent-950/70 text-accent-900 dark:text-accent-300'}`}>
                 {stageBuckets.applied.length}
               </span>
             </button>
@@ -411,22 +843,22 @@ export function CandidateMatchingPage({ opportunityId }: { opportunityId?: strin
               className={`rounded-xl px-3 py-1.5 text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap ${
                 statusStage === 'Rejected'
                   ? 'bg-rose-600 text-white shadow-soft'
-                  : 'bg-white border border-ink-200 text-rose-700 hover:bg-rose-50'
+                  : 'bg-white dark:bg-[#161b22] border border-ink-200 dark:border-[#30363d] text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40'
               }`}
             >
               <span>❌ Rejected</span>
-              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${statusStage === 'Rejected' ? 'bg-white/25 text-white' : 'bg-rose-100 text-rose-800'}`}>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${statusStage === 'Rejected' ? 'bg-white/25 text-white' : 'bg-rose-100 dark:bg-rose-950/70 text-rose-800 dark:text-rose-300'}`}>
                 {stageBuckets.rejected.length}
               </span>
             </button>
           </div>
 
           {/* View Mode Toggle */}
-          <div className="flex items-center gap-1 bg-ink-100 p-1 rounded-xl">
+          <div className="flex items-center gap-1 bg-ink-100 dark:bg-[#21262d] p-1 rounded-xl">
             <button
               onClick={() => setViewMode('list')}
               className={`flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-lg transition ${
-                viewMode === 'list' ? 'bg-white text-ink-900 shadow-2xs' : 'text-ink-600 hover:text-ink-900'
+                viewMode === 'list' ? 'bg-white dark:bg-[#161b22] text-ink-900 dark:text-white shadow-2xs' : 'text-ink-600 dark:text-[#8b949e] hover:text-ink-900 dark:hover:text-white'
               }`}
             >
               <ListFilter className="h-3.5 w-3.5" />
@@ -435,7 +867,7 @@ export function CandidateMatchingPage({ opportunityId }: { opportunityId?: strin
             <button
               onClick={() => setViewMode('stages')}
               className={`flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-lg transition ${
-                viewMode === 'stages' ? 'bg-white text-brand-700 shadow-2xs' : 'text-ink-600 hover:text-ink-900'
+                viewMode === 'stages' ? 'bg-white dark:bg-[#161b22] text-brand-700 dark:text-brand-400 shadow-2xs' : 'text-ink-600 dark:text-[#8b949e] hover:text-ink-900 dark:hover:text-white'
               }`}
             >
               <Columns className="h-3.5 w-3.5" />
@@ -447,7 +879,7 @@ export function CandidateMatchingPage({ opportunityId }: { opportunityId?: strin
         {/* Search and selection controls */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400 dark:text-[#8b949e]" />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -459,7 +891,7 @@ export function CandidateMatchingPage({ opportunityId }: { opportunityId?: strin
             {list.length > 0 && (
               <button
                 onClick={toggleSelectAll}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 hover:bg-ink-50 transition"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-ink-200 dark:border-[#30363d] bg-white dark:bg-[#161b22] px-3 py-1.5 text-xs font-semibold text-ink-700 dark:text-[#c9d1d9] hover:bg-ink-50 dark:hover:bg-[#21262d] transition"
               >
                 {isAllSelected ? <CheckSquare className="h-3.5 w-3.5 text-brand-600" /> : <Square className="h-3.5 w-3.5 text-ink-400" />}
                 <span>{isAllSelected ? 'Deselect All' : 'Select All'}</span>
@@ -470,7 +902,7 @@ export function CandidateMatchingPage({ opportunityId }: { opportunityId?: strin
               className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition ${
                 filterApplicantsOnly
                   ? 'bg-brand-600 text-white shadow-2xs'
-                  : 'bg-white border border-ink-200 text-ink-700 hover:bg-ink-50'
+                  : 'bg-white dark:bg-[#161b22] border border-ink-200 dark:border-[#30363d] text-ink-700 dark:text-[#c9d1d9] hover:bg-ink-50 dark:hover:bg-[#21262d]'
               }`}
             >
               {filterApplicantsOnly ? '✓ Applicants Only' : 'Filter Applicants Only'}
@@ -767,6 +1199,8 @@ export function CandidateMatchingPage({ opportunityId }: { opportunityId?: strin
           onUpdateStatus={(studentId, status) => updateStatus(studentId, opp.id, status)}
         />
       )}
+        </>
+      )}
 
       {/* Fairness note */}
       <Card className="mt-4 p-4 bg-accent-50 border-accent-100">
@@ -894,8 +1328,8 @@ function CandidateRow({
           <p className="text-sm text-ink-700">{result.explanation}</p>
 
           {/* Quick status recruiter controls */}
-          <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl bg-white p-3 border border-ink-100">
-            <span className="text-xs font-bold uppercase tracking-wide text-ink-500">
+          <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl bg-white dark:bg-[#161b22] p-3 border border-ink-100 dark:border-[#30363d]">
+            <span className="text-xs font-bold uppercase tracking-wide text-ink-500 dark:text-[#8b949e]">
               Recruiter action:
             </span>
             <button
@@ -1035,23 +1469,23 @@ function CandidateComparisonModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-6 animate-fade-in">
-      <div className="relative flex max-h-[92vh] w-full max-w-6xl flex-col rounded-3xl bg-white shadow-2xl border border-ink-200 overflow-hidden">
+      <div className="relative flex max-h-[92vh] w-full max-w-6xl flex-col rounded-3xl bg-white dark:bg-[#161b22] shadow-2xl border border-ink-200 dark:border-[#30363d] overflow-hidden">
         {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-ink-100 px-6 py-4 bg-ink-50/50">
+        <div className="flex items-center justify-between border-b border-ink-100 dark:border-[#30363d] px-6 py-4 bg-ink-50/50 dark:bg-[#21262d]">
           <div>
             <div className="flex items-center gap-2">
-              <Scale className="h-5 w-5 text-accent-600" />
-              <h2 className="font-display text-lg font-bold text-ink-900">
+              <Scale className="h-5 w-5 text-accent-600 dark:text-accent-400" />
+              <h2 className="font-display text-lg font-bold text-ink-900 dark:text-white">
                 Candidate Comparison Matrix
               </h2>
             </div>
-            <p className="text-xs text-ink-500 mt-0.5">
-              Evaluating {candidatesData.length} candidates side-by-side for <span className="font-semibold text-ink-800">{opp.title}</span>
+            <p className="text-xs text-ink-500 dark:text-[#8b949e] mt-0.5">
+              Evaluating {candidatesData.length} candidates side-by-side for <span className="font-semibold text-ink-800 dark:text-[#f0f6fc]">{opp.title}</span>
             </p>
           </div>
           <button
             onClick={onClose}
-            className="rounded-full p-1.5 text-ink-400 hover:bg-ink-100 hover:text-ink-700 transition"
+            className="rounded-full p-1.5 text-ink-400 dark:text-[#8b949e] hover:bg-ink-100 dark:hover:bg-[#30363d] hover:text-ink-700 dark:hover:text-white transition"
           >
             <X className="h-5 w-5" />
           </button>
@@ -1117,11 +1551,11 @@ function CandidateComparisonModal({
               {allSkills.map(({ id: skId, name, required }) => (
                 <div
                   key={skId}
-                  className="grid grid-cols-[200px_repeat(auto-fit,minmax(200px,1fr))] gap-4 items-center rounded-xl border border-ink-100 bg-white p-3 hover:bg-ink-50/40 transition"
+                  className="grid grid-cols-[200px_repeat(auto-fit,minmax(200px,1fr))] gap-4 items-center rounded-xl border border-ink-100 dark:border-[#30363d] bg-white dark:bg-[#161b22] p-3 hover:bg-ink-50/40 dark:hover:bg-[#21262d] transition"
                 >
                   <div>
                     <div className="flex items-center gap-1.5">
-                      <span className="font-semibold text-xs text-ink-900">{name}</span>
+                      <span className="font-semibold text-xs text-ink-900 dark:text-white">{name}</span>
                       <Chip color={required ? 'brand' : 'gray'}>
                         <span className="text-[9px] font-bold">{required ? 'Required' : 'Preferred'}</span>
                       </Chip>

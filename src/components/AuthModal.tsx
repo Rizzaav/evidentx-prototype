@@ -163,23 +163,23 @@ export function AuthModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-6 animate-fade-in">
-      <div className="relative w-full max-w-md max-h-[88vh] flex flex-col rounded-3xl bg-white shadow-2xl border border-ink-100 overflow-hidden">
+      <div className="relative w-full max-w-md max-h-[88vh] flex flex-col rounded-3xl bg-white dark:bg-[#161b22] shadow-2xl border border-ink-100 dark:border-[#30363d] overflow-hidden">
         {/* Modal Header (Fixed at Top) */}
-        <div className="flex-shrink-0 flex items-center justify-between border-b border-ink-100 px-6 py-4 bg-ink-50/50">
+        <div className="flex-shrink-0 flex items-center justify-between border-b border-ink-100 dark:border-[#30363d] px-6 py-4 bg-ink-50/50 dark:bg-[#0d1117]">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-600 text-white font-bold">
               <Sparkles className="h-4 w-4" />
             </div>
             <div>
-              <h2 className="font-display text-base font-bold text-ink-900">
+              <h2 className="font-display text-base font-bold text-ink-900 dark:text-white">
                 {mode === 'signin' ? 'Sign In to EvidentX' : 'Create EvidentX Account'}
               </h2>
-              <p className="text-xs text-ink-500">Verified Evidence & Skill Passport</p>
+              <p className="text-xs text-ink-500 dark:text-[#8b949e]">Verified Evidence & Skill Passport</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="rounded-full p-1.5 text-ink-400 hover:bg-ink-100 hover:text-ink-700 transition"
+            className="rounded-full p-1.5 text-ink-400 hover:bg-ink-100 dark:hover:bg-[#21262d] hover:text-ink-700 dark:hover:text-[#c9d1d9] transition"
           >
             <X className="h-5 w-5" />
           </button>
@@ -189,7 +189,7 @@ export function AuthModal({
         <div className="overflow-y-auto flex-1 overscroll-contain">
 
         {/* Tab Selector */}
-        <div className="grid grid-cols-2 p-1.5 bg-ink-100/60 mx-6 mt-5 rounded-2xl">
+        <div className="grid grid-cols-2 p-1.5 bg-ink-100/60 dark:bg-[#0d1117] mx-6 mt-5 rounded-2xl border border-transparent dark:border-[#30363d]">
           <button
             type="button"
             onClick={() => {
@@ -198,8 +198,8 @@ export function AuthModal({
             }}
             className={`py-2 text-xs font-bold rounded-xl transition ${
               mode === 'signin'
-                ? 'bg-white text-ink-900 shadow-sm'
-                : 'text-ink-500 hover:text-ink-800'
+                ? 'bg-white dark:bg-[#21262d] text-ink-900 dark:text-white shadow-sm'
+                : 'text-ink-500 dark:text-[#8b949e] hover:text-ink-800 dark:hover:text-white'
             }`}
           >
             Sign In
@@ -212,8 +212,8 @@ export function AuthModal({
             }}
             className={`py-2 text-xs font-bold rounded-xl transition ${
               mode === 'signup'
-                ? 'bg-white text-ink-900 shadow-sm'
-                : 'text-ink-500 hover:text-ink-800'
+                ? 'bg-white dark:bg-[#21262d] text-ink-900 dark:text-white shadow-sm'
+                : 'text-ink-500 dark:text-[#8b949e] hover:text-ink-800 dark:hover:text-white'
             }`}
           >
             Create Account
@@ -240,7 +240,7 @@ export function AuthModal({
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Role Selection (Available for both Sign In & Sign Up) */}
             <div>
-              <label className="text-xs font-bold uppercase tracking-wider text-ink-500 block mb-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-ink-500 dark:text-[#8b949e] block mb-1.5">
                 {mode === 'signin' ? 'Signing in as:' : 'I am a:'}
               </label>
               <div className="grid grid-cols-2 gap-2">
@@ -249,8 +249,8 @@ export function AuthModal({
                   onClick={() => setRole('student')}
                   className={`flex items-center justify-center gap-2 rounded-xl border p-2.5 text-xs font-bold transition ${
                     role === 'student'
-                      ? 'border-brand-500 bg-brand-50 text-brand-700 ring-2 ring-brand-200 shadow-2xs'
-                      : 'border-ink-200 text-ink-600 hover:bg-ink-50'
+                      ? 'border-brand-500 bg-brand-50 dark:bg-brand-950/70 text-brand-700 dark:text-brand-300 ring-2 ring-brand-200 dark:ring-brand-800 shadow-2xs'
+                      : 'border-ink-200 dark:border-[#30363d] text-ink-600 dark:text-[#c9d1d9] hover:bg-ink-50 dark:hover:bg-[#21262d]'
                   }`}
                 >
                   <GraduationCap className="h-4 w-4" />
@@ -261,8 +261,8 @@ export function AuthModal({
                   onClick={() => setRole('organization')}
                   className={`flex items-center justify-center gap-2 rounded-xl border p-2.5 text-xs font-bold transition ${
                     role === 'organization'
-                      ? 'border-accent-500 bg-accent-50 text-accent-700 ring-2 ring-accent-200 shadow-2xs'
-                      : 'border-ink-200 text-ink-600 hover:bg-ink-50'
+                      ? 'border-accent-500 bg-accent-50 dark:bg-accent-950/70 text-accent-700 dark:text-accent-300 ring-2 ring-accent-200 dark:ring-accent-800 shadow-2xs'
+                      : 'border-ink-200 dark:border-[#30363d] text-ink-600 dark:text-[#c9d1d9] hover:bg-ink-50 dark:hover:bg-[#21262d]'
                   }`}
                 >
                   <Building2 className="h-4 w-4" />
@@ -275,7 +275,7 @@ export function AuthModal({
               <>
                 {/* Full Name */}
                 <div>
-                  <label className="text-xs font-semibold text-ink-700 block mb-1">Full Name</label>
+                  <label className="text-xs font-semibold text-ink-700 dark:text-[#c9d1d9] block mb-1">Full Name</label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
                     <input
@@ -292,7 +292,7 @@ export function AuthModal({
                 {role === 'student' ? (
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-xs font-semibold text-ink-700 block mb-1">University</label>
+                      <label className="text-xs font-semibold text-ink-700 dark:text-[#c9d1d9] block mb-1">University</label>
                       <input
                         type="text"
                         value={university}
@@ -302,7 +302,7 @@ export function AuthModal({
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-ink-700 block mb-1">Program</label>
+                      <label className="text-xs font-semibold text-ink-700 dark:text-[#c9d1d9] block mb-1">Program</label>
                       <input
                         type="text"
                         value={program}
@@ -314,7 +314,7 @@ export function AuthModal({
                   </div>
                 ) : (
                   <div>
-                    <label className="text-xs font-semibold text-ink-700 block mb-1">Company / Organization</label>
+                    <label className="text-xs font-semibold text-ink-700 dark:text-[#c9d1d9] block mb-1">Company / Organization</label>
                     <input
                       type="text"
                       value={organization}
@@ -329,7 +329,7 @@ export function AuthModal({
 
             {/* Email */}
             <div>
-              <label className="text-xs font-semibold text-ink-700 block mb-1">Email Address</label>
+              <label className="text-xs font-semibold text-ink-700 dark:text-[#c9d1d9] block mb-1">Email Address</label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
                 <input
@@ -345,7 +345,7 @@ export function AuthModal({
 
             {/* Password */}
             <div>
-              <label className="text-xs font-semibold text-ink-700 block mb-1">Password</label>
+              <label className="text-xs font-semibold text-ink-700 dark:text-[#c9d1d9] block mb-1">Password</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
                 <input
@@ -376,11 +376,11 @@ export function AuthModal({
 
           {/* Proper Sequence Divider */}
           <div className="relative flex items-center justify-center my-3">
-            <div className="border-t border-ink-200 w-full" />
-            <span className="bg-white px-3 text-[11px] font-medium text-ink-400 whitespace-nowrap">
+            <div className="border-t border-ink-200 dark:border-[#30363d] w-full" />
+            <span className="bg-white dark:bg-[#161b22] px-3 text-[11px] font-medium text-ink-400 dark:text-[#8b949e] whitespace-nowrap">
               or continue with
             </span>
-            <div className="border-t border-ink-200 w-full" />
+            <div className="border-t border-ink-200 dark:border-[#30363d] w-full" />
           </div>
 
           {/* Social OAuth One-Click Authentication at Bottom */}
@@ -389,10 +389,10 @@ export function AuthModal({
               type="button"
               disabled={oauthLoading !== null || loading}
               onClick={() => handleOAuth('google')}
-              className="w-full inline-flex items-center justify-center gap-3 rounded-xl border border-ink-200 bg-white py-2.5 px-4 text-xs font-semibold text-ink-700 hover:bg-ink-50 hover:border-ink-300 transition shadow-2xs disabled:opacity-50"
+              className="w-full inline-flex items-center justify-center gap-3 rounded-xl border border-ink-200 dark:border-[#30363d] bg-white dark:bg-[#21262d] py-2.5 px-4 text-xs font-semibold text-ink-700 dark:text-[#c9d1d9] hover:bg-ink-50 dark:hover:bg-[#30363d] hover:border-ink-300 dark:hover:border-[#484f58] transition shadow-2xs disabled:opacity-50"
             >
               {oauthLoading === 'google' ? (
-                <Loader2 className="h-4 w-4 animate-spin text-ink-900" />
+                <Loader2 className="h-4 w-4 animate-spin text-ink-900 dark:text-white" />
               ) : (
                 <svg className="h-4 w-4 flex-shrink-0" viewBox="0 0 24 24">
                   <path
@@ -420,12 +420,12 @@ export function AuthModal({
               type="button"
               disabled={oauthLoading !== null || loading}
               onClick={() => handleOAuth('github')}
-              className="w-full inline-flex items-center justify-center gap-3 rounded-xl border border-ink-200 bg-white py-2.5 px-4 text-xs font-semibold text-ink-700 hover:bg-ink-50 hover:border-ink-300 transition shadow-2xs disabled:opacity-50"
+              className="w-full inline-flex items-center justify-center gap-3 rounded-xl border border-ink-200 dark:border-[#30363d] bg-white dark:bg-[#21262d] py-2.5 px-4 text-xs font-semibold text-ink-700 dark:text-[#c9d1d9] hover:bg-ink-50 dark:hover:bg-[#30363d] hover:border-ink-300 dark:hover:border-[#484f58] transition shadow-2xs disabled:opacity-50"
             >
               {oauthLoading === 'github' ? (
-                <Loader2 className="h-4 w-4 animate-spin text-ink-900" />
+                <Loader2 className="h-4 w-4 animate-spin text-ink-900 dark:text-white" />
               ) : (
-                <Github className="h-4 w-4 flex-shrink-0 text-ink-900" />
+                <Github className="h-4 w-4 flex-shrink-0 text-ink-900 dark:text-white" />
               )}
               <span>{oauthLoading === 'github' ? 'Redirecting to GitHub...' : 'Continue with GitHub'}</span>
             </button>
@@ -451,25 +451,25 @@ export function AuthModal({
       {/* GITHUB CONNECT MODAL */}
       {showGithubModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl border border-ink-100 space-y-4">
-            <div className="flex items-center justify-between border-b border-ink-100 pb-3">
+          <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-[#161b22] p-6 shadow-2xl border border-ink-100 dark:border-[#30363d] space-y-4">
+            <div className="flex items-center justify-between border-b border-ink-100 dark:border-[#30363d] pb-3">
               <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-xl bg-ink-900 text-white flex items-center justify-center">
+                <div className="h-8 w-8 rounded-xl bg-ink-900 dark:bg-ink-800 text-white flex items-center justify-center">
                   <Github className="h-4 w-4" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-ink-900 text-sm">Sign in with GitHub</h3>
-                  <p className="text-[11px] text-ink-500">Connect your public developer profile</p>
+                  <h3 className="font-bold text-ink-900 dark:text-white text-sm">Sign in with GitHub</h3>
+                  <p className="text-[11px] text-ink-500 dark:text-[#8b949e]">Connect your public developer profile</p>
                 </div>
               </div>
-              <button onClick={() => setShowGithubModal(false)} className="text-ink-400 hover:text-ink-700">
+              <button onClick={() => setShowGithubModal(false)} className="text-ink-400 hover:text-ink-700 dark:hover:text-[#c9d1d9]">
                 <X className="h-4 w-4" />
               </button>
             </div>
 
             <form onSubmit={handleConnectGithub} className="space-y-3">
               <div>
-                <label className="text-xs font-semibold text-ink-700 block mb-1">
+                <label className="text-xs font-semibold text-ink-700 dark:text-[#c9d1d9] block mb-1">
                   GitHub Username or Profile URL
                 </label>
                 <input
@@ -481,7 +481,7 @@ export function AuthModal({
                   className="input text-xs"
                   autoFocus
                 />
-                <p className="text-[11px] text-ink-400 mt-1">
+                <p className="text-[11px] text-ink-400 dark:text-[#8b949e] mt-1">
                   We'll verify your public avatar, repository stats, and create your skill passport.
                 </p>
               </div>

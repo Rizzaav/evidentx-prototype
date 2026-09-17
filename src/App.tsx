@@ -61,12 +61,19 @@ const CreateTeamPage = lazy(() =>
 const PublicPassportPage = lazy(() =>
   import('@/pages/PublicPassportPage').then((m) => ({ default: m.PublicPassportPage }))
 );
+const StudentInterviewCoachPage = lazy(() =>
+  import('@/pages/StudentInterviewCoachPage').then((m) => ({ default: m.StudentInterviewCoachPage }))
+);
+
+import { ToastProvider } from '@/lib/toast';
 
 function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <AppRouter />
+        <ToastProvider>
+          <AppRouter />
+        </ToastProvider>
       </AuthProvider>
     </ThemeProvider>
   );
@@ -203,6 +210,8 @@ function renderStudent(seg: string[]): React.ReactNode {
   if (seg[1] === 'skillgap' && seg[2]) return <SkillGapPage opportunityId={seg[2]} />;
   // /student/teams
   if (seg[1] === 'teams') return <TeamMatchingPage />;
+  // /student/interview-coach
+  if (seg[1] === 'interview-coach') return <StudentInterviewCoachPage />;
   return <StudentDashboardPage />;
 }
 

@@ -14,25 +14,25 @@ export function AccessRestricted({
 
   return (
     <div className="min-h-[70vh] flex items-center justify-center p-4">
-      <div className="max-w-md w-full rounded-3xl border border-ink-200 bg-white p-6 sm:p-8 text-center shadow-lift animate-scale-in">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-50 text-rose-600 border border-rose-200 shadow-2xs mb-4">
+      <div className="max-w-md w-full rounded-3xl border border-ink-200 dark:border-[#30363d] bg-white dark:bg-[#161b22] p-6 sm:p-8 text-center shadow-lift animate-scale-in">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 shadow-2xs mb-4">
           <ShieldAlert className="h-8 w-8" />
         </div>
 
-        <div className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 border border-rose-200 px-3 py-1 text-xs font-bold text-rose-700 uppercase tracking-wider mb-2">
+        <div className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 px-3 py-1 text-xs font-bold text-rose-700 dark:text-rose-300 uppercase tracking-wider mb-2">
           <Lock className="h-3 w-3" /> Access Restricted (403)
         </div>
 
-        <h2 className="font-display text-xl font-extrabold text-ink-900 tracking-tight">
+        <h2 className="font-display text-xl font-extrabold text-ink-900 dark:text-white tracking-tight">
           {requiredRole === 'organization'
             ? 'Organization Portal Only'
             : 'Student Portal Only'}
         </h2>
 
-        <p className="text-xs sm:text-sm text-ink-600 mt-2 leading-relaxed">
+        <p className="text-xs sm:text-sm text-ink-600 dark:text-ink-300 mt-2 leading-relaxed">
           You are currently signed in as a{' '}
-          <strong className="text-ink-900 capitalize font-bold">{currentRole}</strong> (
-          <span className="font-mono text-ink-700 text-xs">{profile?.email}</span>). You do not have permission to access {requiredRole === 'organization' ? 'recruiter and candidate management tools' : 'student skill passports and evidence'}.
+          <strong className="text-ink-900 dark:text-white capitalize font-bold">{currentRole}</strong> (
+          <span className="font-mono text-ink-700 dark:text-ink-300 text-xs">{profile?.email}</span>). You do not have permission to access {requiredRole === 'organization' ? 'recruiter and candidate management tools' : 'student skill passports and evidence'}.
         </p>
 
         <div className="mt-6 flex flex-col gap-2.5">
@@ -50,7 +50,7 @@ export function AccessRestricted({
               signOut();
               navigate('/login');
             }}
-            className="btn-secondary w-full text-xs justify-center py-2 text-ink-700"
+            className="btn-secondary w-full text-xs justify-center py-2 text-ink-700 dark:text-ink-200"
           >
             <LogIn className="h-3.5 w-3.5" /> Sign In with a Different Account
           </button>

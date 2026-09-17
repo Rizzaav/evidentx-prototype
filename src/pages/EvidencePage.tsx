@@ -438,7 +438,7 @@ export function EvidencePage() {
             key={f}
             onClick={() => setFilter(f)}
             className={`rounded-lg px-3 py-1.5 text-sm font-semibold capitalize transition ${
-              filter === f ? 'bg-brand-600 text-white' : 'bg-white border border-ink-200 text-ink-600 hover:bg-ink-50'
+              filter === f ? 'bg-brand-600 text-white shadow-sm' : 'bg-white dark:bg-[#161b22] border border-ink-200 dark:border-[#30363d] text-ink-600 dark:text-[#c9d1d9] hover:bg-ink-50 dark:hover:bg-[#21262d]'
             }`}
           >
             {f}
@@ -553,17 +553,17 @@ export function EvidencePage() {
       {/* Add / Edit Evidence Modal with Multi-Source Scanner */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/60 p-4 backdrop-blur-sm animate-fade-in overflow-y-auto">
-          <div className="w-full max-w-2xl rounded-3xl bg-white p-6 sm:p-8 shadow-lift max-h-[90vh] overflow-y-auto">
+          <div className="w-full max-w-2xl rounded-3xl bg-white dark:bg-[#161b22] p-6 sm:p-8 shadow-lift max-h-[90vh] overflow-y-auto border border-ink-100 dark:border-[#30363d]">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-brand-50 dark:bg-brand-950/60 text-brand-600 dark:text-brand-400">
                   {editingEvidenceId ? <Edit3 className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}
                 </span>
                 <div>
-                  <h3 className="font-display text-xl font-bold text-ink-900">
+                  <h3 className="font-display text-xl font-bold text-ink-900 dark:text-white">
                     {editingEvidenceId ? 'Edit Verified Evidence' : 'Add Verified Evidence'}
                   </h3>
-                  <p className="text-xs text-ink-500">
+                  <p className="text-xs text-ink-500 dark:text-[#8b949e]">
                     {editingEvidenceId
                       ? 'Update details, demonstrated skills, and strengths'
                       : 'Auto-extract and verify skills using live GitHub REST API & AI analysis'}
@@ -575,7 +575,7 @@ export function EvidencePage() {
                   setShowModal(false);
                   resetForm();
                 }}
-                className="rounded-xl p-1 text-ink-400 hover:bg-ink-100"
+                className="rounded-xl p-1 text-ink-400 dark:text-[#8b949e] hover:bg-ink-100 dark:hover:bg-[#30363d]"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -583,11 +583,11 @@ export function EvidencePage() {
 
             {/* In-Modal Tab Switcher (Only show for new items) */}
             {!editingEvidenceId && (
-              <div className="grid grid-cols-3 p-1 bg-ink-100/70 rounded-2xl mt-5 mb-5 text-xs font-bold">
+              <div className="grid grid-cols-3 p-1 bg-ink-100/70 dark:bg-[#21262d] rounded-2xl mt-5 mb-5 text-xs font-bold">
                 <button
                   onClick={() => setModalTab('form')}
                   className={`py-2 rounded-xl transition ${
-                    modalTab === 'form' ? 'bg-white text-ink-900 shadow-sm' : 'text-ink-500 hover:text-ink-800'
+                    modalTab === 'form' ? 'bg-white dark:bg-[#161b22] text-ink-900 dark:text-white shadow-sm' : 'text-ink-500 dark:text-[#8b949e] hover:text-ink-800 dark:hover:text-white'
                   }`}
                 >
                   Manual / Syllabus
@@ -595,7 +595,7 @@ export function EvidencePage() {
                 <button
                   onClick={() => setModalTab('github')}
                   className={`py-2 rounded-xl transition inline-flex items-center justify-center gap-1.5 ${
-                    modalTab === 'github' ? 'bg-white text-ink-900 shadow-sm' : 'text-ink-500 hover:text-ink-800'
+                    modalTab === 'github' ? 'bg-white dark:bg-[#161b22] text-ink-900 dark:text-white shadow-sm' : 'text-ink-500 dark:text-[#8b949e] hover:text-ink-800 dark:hover:text-white'
                   }`}
                 >
                   <Github className="h-3.5 w-3.5" />
@@ -604,7 +604,7 @@ export function EvidencePage() {
                 <button
                   onClick={() => setModalTab('upload')}
                   className={`py-2 rounded-xl transition inline-flex items-center justify-center gap-1.5 ${
-                    modalTab === 'upload' ? 'bg-white text-ink-900 shadow-sm' : 'text-ink-500 hover:text-ink-800'
+                    modalTab === 'upload' ? 'bg-white dark:bg-[#161b22] text-ink-900 dark:text-white shadow-sm' : 'text-ink-500 dark:text-[#8b949e] hover:text-ink-800 dark:hover:text-white'
                   }`}
                 >
                   <UploadCloud className="h-3.5 w-3.5" />
@@ -615,18 +615,18 @@ export function EvidencePage() {
 
             {/* TAB 1: GITHUB SCANNER (LIVE REST API) */}
             {modalTab === 'github' && !editingEvidenceId && (
-              <div className="p-4 rounded-2xl border border-ink-200 bg-ink-50/50 space-y-4 mb-4">
+              <div className="p-4 rounded-2xl border border-ink-200 dark:border-[#30363d] bg-ink-50/50 dark:bg-[#0d1117] space-y-4 mb-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Github className="h-5 w-5 text-ink-900" />
-                    <h4 className="text-sm font-bold text-ink-900">Live GitHub Public API Scanner</h4>
+                    <Github className="h-5 w-5 text-ink-900 dark:text-white" />
+                    <h4 className="text-sm font-bold text-ink-900 dark:text-white">Live GitHub Public API Scanner</h4>
                   </div>
-                  <span className="text-[10px] font-semibold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
+                  <span className="text-[10px] font-semibold bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 px-2 py-0.5 rounded-full">
                     Live API Connected
                   </span>
                 </div>
-                <p className="text-xs text-ink-600">
-                  Enter any public GitHub repository (e.g. <code className="bg-ink-200/60 px-1 py-0.5 rounded">username/project</code> or full URL) to fetch live languages, byte counts, stars, and commit signatures.
+                <p className="text-xs text-ink-600 dark:text-[#c9d1d9]">
+                  Enter any public GitHub repository (e.g. <code className="bg-ink-200/60 dark:bg-[#21262d] dark:text-brand-300 px-1 py-0.5 rounded">username/project</code> or full URL) to fetch live languages, byte counts, stars, and commit signatures.
                 </p>
                 <div className="flex gap-2">
                   <input

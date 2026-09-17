@@ -18,6 +18,7 @@ import {
   skillName,
   getAllStudents,
   getDataVersion,
+  studentMap,
 } from '@/data/mockData';
 
 // ============================================================
@@ -468,6 +469,123 @@ export function skillGapAnalysis(
 }
 
 // ============================================================
+// Interactive "What-If" Skill Simulator
+// ============================================================
+
+export interface SimulatedMatchResult {
+  baseScore: number;
+  simulatedScore: number;
+  delta: number;
+  strong: (SkillMatch & { isSimulated?: boolean })[];
+  partial: SkillMatch[];
+  missing: SkillMatch[];
+  simulatedSkillIds: string[];
+}
+
+export function simulateOpportunityMatch(
+  studentId: string,
+  opportunity: Opportunity,
+  simulatedSkillIds: Set<string> | string[]
+): SimulatedMatchResult {
+  const baseMatch = matchStudentToOpportunity(studentId, opportunity);
+  const baseGap = skillGapAnalysis(studentId, opportunity);
+  const simSet = new Set(simulatedSkillIds);
+
+  if (simSet.size === 0) {
+    return {
+      baseScore: baseMatch.matchScore,
+      simulatedScore: baseMatch.matchScore,
+      delta: 0,
+      strong: baseGap.strong,
+      partial: baseGap.partial,
+      missing: baseGap.missing,
+      simulatedSkillIds: [],
+    };
+  }
+
+  const existingMap = getStudentSkillsMap(studentId);
+  const simMap = new Map(existingMap);
+
+  for (const skId of simSet) {
+    simMap.set(skId, {
+      studentId,
+      skillId: skId,
+      proficiency: 85,
+      evidenceIds: [],
+    });
+  }
+
+  const all: (SkillMatch & { isSimulated?: boolean })[] = [];
+  for (const skId of opportunity.requiredSkills) {
+    const sm = buildSkillMatch(skId, true, simMap);
+    if (simSet.has(skId)) {
+      sm.studentProficiency = 85;
+      sm.status = 'matched';
+      sm.evidenceStrength = 85;
+      sm.evidenceTitles = ['Interactive "What-If" Simulation'];
+      (sm as any).isSimulated = true;
+    }
+    all.push(sm);
+  }
+  for (const skId of opportunity.preferredSkills) {
+    if (!opportunity.requiredSkills.includes(skId)) {
+      const sm = buildSkillMatch(skId, false, simMap);
+      if (simSet.has(skId)) {
+        sm.studentProficiency = 85;
+        sm.status = 'matched';
+        sm.evidenceStrength = 85;
+        sm.evidenceTitles = ['Interactive "What-If" Simulation'];
+        (sm as any).isSimulated = true;
+      }
+      all.push(sm);
+    }
+  }
+
+  const matchedSkills = all.filter((s) => s.status === 'matched');
+  const partialSkills = all.filter((s) => s.status === 'partial');
+  const missingSkills = all.filter((s) => s.status === 'missing');
+
+  const requiredTotal = opportunity.requiredSkills.length;
+  const preferredTotal = opportunity.preferredSkills.length;
+  const maxWeighted = requiredTotal * REQUIRED_WEIGHT + preferredTotal * PREFERRED_WEIGHT;
+
+  let earnedWeighted = 0;
+  for (const m of matchedSkills) {
+    earnedWeighted += m.required ? REQUIRED_WEIGHT : PREFERRED_WEIGHT;
+  }
+  for (const p of partialSkills) {
+    const frac = PARTIAL_CREDIT * (p.studentProficiency / MATCH_THRESHOLD);
+    earnedWeighted += (p.required ? REQUIRED_WEIGHT : PREFERRED_WEIGHT) * Math.min(frac, PARTIAL_CREDIT);
+  }
+
+  const baseScoreCalc = maxWeighted > 0 ? (earnedWeighted / maxWeighted) * 100 : 0;
+  const matchedWithEvidence = matchedSkills.filter((m) => m.evidenceStrength > 0);
+  const avgEvidence =
+    matchedWithEvidence.length > 0
+      ? matchedWithEvidence.reduce((a, b) => a + b.evidenceStrength, 0) / matchedWithEvidence.length
+      : 0;
+  const evidenceBonus = (avgEvidence / 100) * EVIDENCE_BONUS_WEIGHT * 100;
+
+  const missingRequired = missingSkills.filter((m) => m.required).length;
+  const missingRequiredPenalty = requiredTotal > 0 ? (missingRequired / requiredTotal) * 8 : 0;
+
+  const simulatedScore = Math.max(
+    0,
+    Math.min(100, Math.round(baseScoreCalc + evidenceBonus - missingRequiredPenalty))
+  );
+
+  return {
+    baseScore: baseMatch.matchScore,
+    simulatedScore,
+    delta: Math.max(0, simulatedScore - baseMatch.matchScore),
+    strong: matchedSkills,
+    partial: partialSkills,
+    missing: missingSkills,
+    simulatedSkillIds: Array.from(simSet),
+  };
+}
+
+// ============================================================
 // Team Matching
 // ============================================================
 
@@ -576,6 +694,130 @@ export function teamComposition(
     .map((r) => r.id);
 
   return { candidates, filledRoles, missingSkills, coverage };
+}
+
+export interface OptimalSquadResult {
+  squadStudentIds: string[];
+  coveragePercent: number;
+  coveredSkills: string[];
+  missingSkills: string[];
+  roleAssignments: { roleId: string; roleName: string; studentId: string; studentName: string; fitScore: number }[];
+  explanation: string;
+}
+
+/**
+ * Algorithmic squad assembly optimizer:
+ * Selects the optimal combination of candidates to maximize skill coverage
+ * and allocate specialists across required team roles.
+ */
+export function autoAssembleOptimalSquad(
+  team: TeamRequirement,
+  maxSquadSize: number = 4
+): OptimalSquadResult {
+  const allCandidates = rankStudentsForTeam(team);
+  const requiredSkills = new Set(team.requiredSkills);
+  const selectedIds: string[] = [];
+  const coveredSkills = new Set<string>();
+
+  // Step 1: Assign top candidates per role
+  for (const role of team.roles) {
+    if (selectedIds.length >= maxSquadSize) break;
+    const candidate = allCandidates
+      .filter((c) => !selectedIds.includes(c.studentId))
+      .map((c) => {
+        const rf = c.rolesFit.find((r) => r.roleId === role.id)?.fitScore ?? 0;
+        const map = getStudentSkillsMap(c.studentId);
+        let newSkills = 0;
+        for (const sk of team.requiredSkills) {
+          if (!coveredSkills.has(sk)) {
+            const ss = map.get(sk);
+            if (ss && ss.proficiency >= PARTIAL_THRESHOLD) newSkills++;
+          }
+        }
+        return { c, rf, newSkills, totalBenefit: rf + newSkills * 20 };
+      })
+      .sort((a, b) => b.totalBenefit - a.totalBenefit)[0];
+
+    if (candidate) {
+      selectedIds.push(candidate.c.studentId);
+      const map = getStudentSkillsMap(candidate.c.studentId);
+      for (const sk of team.requiredSkills) {
+        const ss = map.get(sk);
+        if (ss && ss.proficiency >= PARTIAL_THRESHOLD) {
+          coveredSkills.add(sk);
+        }
+      }
+    }
+  }
+
+  // Step 2: Fill remaining missing skills if capacity allows
+  while (selectedIds.length < maxSquadSize && coveredSkills.size < requiredSkills.size) {
+    const candidate = allCandidates
+      .filter((c) => !selectedIds.includes(c.studentId))
+      .map((c) => {
+        const map = getStudentSkillsMap(c.studentId);
+        let newSkills = 0;
+        for (const sk of team.requiredSkills) {
+          if (!coveredSkills.has(sk)) {
+            const ss = map.get(sk);
+            if (ss && ss.proficiency >= PARTIAL_THRESHOLD) newSkills++;
+          }
+        }
+        return { c, newSkills };
+      })
+      .sort((a, b) => b.newSkills - a.newSkills)[0];
+
+    if (candidate && candidate.newSkills > 0) {
+      selectedIds.push(candidate.c.studentId);
+      const map = getStudentSkillsMap(candidate.c.studentId);
+      for (const sk of team.requiredSkills) {
+        const ss = map.get(sk);
+        if (ss && ss.proficiency >= PARTIAL_THRESHOLD) {
+          coveredSkills.add(sk);
+        }
+      }
+    } else {
+      break;
+    }
+  }
+
+  const comp = teamComposition(team, selectedIds);
+  const roleAssignments = team.roles.map((role) => {
+    let best = { studentId: '', studentName: 'Unfilled', fitScore: 0 };
+    for (const cand of comp.candidates) {
+      const rf = cand.rolesFit.find((r) => r.roleId === role.id);
+      if (rf && rf.fitScore > best.fitScore) {
+        const s = studentMap[cand.studentId];
+        best = { studentId: cand.studentId, studentName: s ? s.name : cand.studentId, fitScore: rf.fitScore };
+      }
+    }
+    return {
+      roleId: role.id,
+      roleName: role.name,
+      studentId: best.studentId,
+      studentName: best.studentName,
+      fitScore: best.fitScore,
+    };
+  });
+
+  const coveredCount = comp.coverage.filter((c) => c.covered).length;
+  const totalCount = team.requiredSkills.length || 1;
+  const coveragePercent = Math.round((coveredCount / totalCount) * 100);
+
+  const explanation =
+    `Assembled ${selectedIds.length}-member squad achieving ${coveragePercent}% coverage of team competencies. ` +
+    (comp.missingSkills.length === 0
+      ? '100% of all required skills are fully covered with zero gap deficiencies.'
+      : `Missing ${comp.missingSkills.length} skill(s): ${comp.missingSkills.map((s) => skillName(s)).join(', ')}.`);
+
+  return {
+    squadStudentIds: selectedIds,
+    coveragePercent,
+    coveredSkills: comp.coverage.filter((c) => c.covered).map((c) => c.skillId),
+    missingSkills: comp.missingSkills,
+    roleAssignments,
+    explanation,
+  };
 }
 
 // ============================================================

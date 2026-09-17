@@ -12,6 +12,7 @@ import {
   Clock,
   Building2,
   CheckCircle2,
+  Brain,
 } from 'lucide-react';
 import { useRouter } from '@/lib/router';
 import {
@@ -149,6 +150,34 @@ export function StudentDashboardPage() {
         <ActionCard icon={<Compass className="h-5 w-5 text-accent-600" />} title="Internships" desc="Explainable matches" onClick={() => navigate('/student/internships')} />
         <ActionCard icon={<Target className="h-5 w-5 text-amber-600" />} title="Skill Gap" desc="Development roadmaps" onClick={() => navigate('/student/skillgap')} />
         <ActionCard icon={<Users className="h-5 w-5 text-rose-600" />} title="Teams" desc="Multidisciplinary squads" onClick={() => navigate('/student/teams')} />
+      </div>
+
+      {/* AI Technical Interview Coach Banner */}
+      <div className="mt-5 relative overflow-hidden rounded-2xl bg-gradient-to-r from-purple-900 via-indigo-900 to-brand-900 p-5 text-white shadow-soft border border-purple-500/30">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-white/10 text-2xl backdrop-blur-sm border border-white/20 shadow-inner">
+              🎯
+            </span>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-display font-bold text-base text-white">AI Technical Interview Coach</span>
+                <span className="rounded-full bg-purple-400/20 px-2 py-0.5 text-[10px] font-extrabold uppercase text-purple-200 border border-purple-400/30">
+                  Evidence-Grounded
+                </span>
+              </div>
+              <p className="text-xs text-purple-100 mt-1 max-w-xl leading-relaxed">
+                Practice realistic technical and behavioral interview questions generated directly from your verified coursework and project evidence, with instant rubric feedback and senior model answers.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate('/student/interview-coach')}
+            className="flex-shrink-0 inline-flex items-center gap-2 rounded-xl bg-white text-ink-950 px-4 py-2.5 text-xs font-bold hover:bg-purple-50 transition shadow-sm active:scale-95"
+          >
+            Launch Interview Coach <ArrowRight className="h-4 w-4 text-purple-600" />
+          </button>
+        </div>
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">

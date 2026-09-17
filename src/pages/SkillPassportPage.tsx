@@ -255,13 +255,13 @@ export function SkillPassportPage() {
       />
 
       {/* Passport Certificate Card */}
-      <div className="card p-6 sm:p-8 border-brand-200/90 shadow-lift bg-white relative">
+      <div className="card p-6 sm:p-8 border-brand-200/90 dark:border-brand-800/60 shadow-lift relative">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-start gap-4">
             <Avatar name={student.name} color={student.avatarColor} photoUrl={student.photoUrl} size="xl" />
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className="font-display text-2xl font-bold tracking-tight text-ink-900">{student.name}</h2>
+                <h2 className="font-display text-2xl font-bold tracking-tight text-ink-900 dark:text-white">{student.name}</h2>
                 <Chip color="emerald" icon={<Shield className="h-3 w-3" />}>
                   Verified
                 </Chip>
@@ -436,18 +436,18 @@ export function SkillPassportPage() {
       {/* EDIT PASSPORT PROFILE MODAL */}
       {showEditModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/60 p-4 backdrop-blur-sm animate-fade-in overflow-y-auto">
-          <div className="w-full max-w-xl rounded-3xl bg-white p-6 sm:p-8 shadow-lift max-h-[90vh] overflow-y-auto space-y-5">
-            <div className="flex items-center justify-between border-b border-ink-100 pb-3">
+          <div className="w-full max-w-xl rounded-3xl bg-white dark:bg-[#161b22] p-6 sm:p-8 shadow-lift max-h-[90vh] overflow-y-auto space-y-5 border border-ink-100 dark:border-[#30363d]">
+            <div className="flex items-center justify-between border-b border-ink-100 dark:border-[#30363d] pb-3">
               <div className="flex items-center gap-2">
-                <div className="h-9 w-9 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center">
+                <div className="h-9 w-9 rounded-xl bg-brand-50 dark:bg-brand-950/60 text-brand-600 dark:text-brand-400 flex items-center justify-center">
                   <Edit3 className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="font-display font-bold text-ink-900 text-lg">Edit Skill Passport Profile</h3>
-                  <p className="text-xs text-ink-500">Update your academic information and passport metadata</p>
+                  <h3 className="font-display font-bold text-ink-900 dark:text-white text-lg">Edit Skill Passport Profile</h3>
+                  <p className="text-xs text-ink-500 dark:text-[#8b949e]">Update your academic information and passport metadata</p>
                 </div>
               </div>
-              <button onClick={() => setShowEditModal(false)} className="p-1 rounded-xl text-ink-400 hover:bg-ink-100">
+              <button onClick={() => setShowEditModal(false)} className="p-1 rounded-xl text-ink-400 dark:text-[#8b949e] hover:bg-ink-100 dark:hover:bg-[#30363d]">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -641,22 +641,22 @@ export function SkillPassportPage() {
       {/* DELETE ACCOUNT CONFIRMATION MODAL */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/60 p-4 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-md rounded-3xl bg-white p-6 sm:p-7 shadow-lift space-y-4">
-            <div className="flex items-center gap-3 text-rose-600">
-              <div className="h-10 w-10 rounded-2xl bg-rose-50 flex items-center justify-center flex-shrink-0">
+          <div className="w-full max-w-md rounded-3xl bg-white dark:bg-[#161b22] p-6 sm:p-7 shadow-lift space-y-4 border border-ink-100 dark:border-[#30363d]">
+            <div className="flex items-center gap-3 text-rose-600 dark:text-rose-400">
+              <div className="h-10 w-10 rounded-2xl bg-rose-50 dark:bg-rose-950/60 flex items-center justify-center flex-shrink-0">
                 <AlertTriangle className="h-5 w-5" />
               </div>
               <div>
-                <h3 className="font-display font-bold text-ink-900 text-base">Delete Skill Passport?</h3>
-                <p className="text-xs text-ink-500">This action cannot be undone.</p>
+                <h3 className="font-display font-bold text-ink-900 dark:text-white text-base">Delete Skill Passport?</h3>
+                <p className="text-xs text-ink-500 dark:text-[#8b949e]">This action cannot be undone.</p>
               </div>
             </div>
 
-            <p className="text-xs text-ink-600 leading-relaxed">
+            <p className="text-xs text-ink-600 dark:text-[#c9d1d9] leading-relaxed">
               Are you sure you want to delete <strong>{student.name}</strong>'s skill passport? All verified evidence records, applications, and cryptographic proofs associated with this profile will be permanently removed.
             </p>
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-ink-100">
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-ink-100 dark:border-[#30363d]">
               <button onClick={() => setShowDeleteModal(false)} className="btn-secondary text-xs py-2 px-3">
                 Keep Passport
               </button>

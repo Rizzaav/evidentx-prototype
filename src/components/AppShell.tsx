@@ -16,11 +16,14 @@ import {
   User as UserIcon,
   LogOut,
   Sparkles,
+  Search,
+  Brain,
 } from 'lucide-react';
 import { useRouter } from '@/lib/router';
 import { Logo, LogoMark } from '@/components/Logo';
 import { useAuth } from '@/lib/authContext';
 import { AuthModal } from '@/components/AuthModal';
+import { CommandPalette } from '@/components/CommandPalette';
 import { Avatar } from '@/components/ui';
 import { NotificationBell } from '@/components/NotificationBell';
 import { ThemeToggle } from '@/lib/themeContext';
@@ -34,6 +37,7 @@ const STUDENT_NAV: NavItem[] = [
   { label: 'Internship Discovery', path: '/student/internships', icon: <Compass className="h-4 w-4" /> },
   { label: 'Skill Gap Analysis', path: '/student/skillgap', icon: <Target className="h-4 w-4" /> },
   { label: 'Team Matching', path: '/student/teams', icon: <Users className="h-4 w-4" /> },
+  { label: 'Interview Coach', path: '/student/interview-coach', icon: <Brain className="h-4 w-4" /> },
 ];
 
 const ORG_NAV: NavItem[] = [
@@ -68,13 +72,18 @@ export function AppShell({
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
 
-  // Close on Escape key
+  // Keyboard shortcut listeners (Escape and Ctrl/Cmd+K)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setCommandPaletteOpen((prev) => !prev);
+      } else if (e.key === 'Escape') {
         setDrawerOpen(false);
         setUserDropdownOpen(false);
+        setCommandPaletteOpen(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -138,6 +147,19 @@ export function AppShell({
 
           {/* Right Header Controls */}
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Quick Command Palette Trigger */}
+            <button
+              onClick={() => setCommandPaletteOpen(true)}
+              className="inline-flex items-center gap-2 rounded-xl border border-ink-200 dark:border-ink-700 bg-ink-50/80 dark:bg-ink-800/80 px-2.5 py-1.5 text-xs text-ink-600 dark:text-ink-300 hover:text-ink-900 dark:hover:text-white hover:border-brand-300 dark:hover:border-brand-500 shadow-2xs transition active:scale-95"
+              title="Search or press ⌘K / Ctrl+K"
+            >
+              <Search className="h-3.5 w-3.5 text-ink-400 dark:text-ink-400" />
+              <span className="hidden md:inline text-[11px] font-medium">Quick Search</span>
+              <kbd className="hidden sm:inline-flex items-center rounded border border-ink-200 dark:border-ink-600 bg-white dark:bg-ink-900 px-1 py-0.2 font-mono text-[9px] font-bold text-ink-500 dark:text-ink-400">
+                ⌘K
+              </kbd>
+            </button>
+
             <button
               onClick={() => navigate('/fairness')}
               className="hidden md:inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold text-ink-600 dark:text-ink-300 hover:bg-ink-100/70 dark:hover:bg-ink-800 hover:text-ink-900 dark:hover:text-white transition"
@@ -413,6 +435,13 @@ export function AppShell({
       <AuthModal
         isOpen={authModalOpen}
         onClose={() => setAuthModalOpen(false)}
+      />
+
+      {/* Command Palette Modal */}
+      <CommandPalette
+        isOpen={commandPaletteOpen}
+        onClose={() => setCommandPaletteOpen(false)}
+        onOpenAuthModal={() => setAuthModalOpen(true)}
       />
 
       {/* Main Content Area */}

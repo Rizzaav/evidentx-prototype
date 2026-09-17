@@ -112,30 +112,30 @@ export function LandingPage() {
       {/* How it works */}
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
         <div>
-          <h2 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-ink-900">How the evidence pipeline works</h2>
-          <p className="mt-2 text-sm text-ink-600 max-w-2xl">
+          <h2 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-ink-900 dark:text-white">How the evidence pipeline works</h2>
+          <p className="mt-2 text-sm text-ink-600 dark:text-ink-300 max-w-2xl">
             Every skill entry in the passport is anchored to inspectable proof artifacts. Matching calculations use only verified technical competencies and evidence strength.
           </p>
         </div>
 
         <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           <FeatureCard
-            icon={<FileBadge className="h-6 w-6 text-brand-600" />}
+            icon={<FileBadge className="h-6 w-6 text-brand-600 dark:text-brand-400" />}
             title="1. Log Proof Artifacts"
             desc="Projects, coursework, credentials, and code repositories are verified with explicit strength scores."
           />
           <FeatureCard
-            icon={<GraduationCap className="h-6 w-6 text-accent-600" />}
+            icon={<GraduationCap className="h-6 w-6 text-accent-600 dark:text-accent-400" />}
             title="2. Compile Skill Passport"
             desc="Skills are dynamically computed from verified artifacts with weighted proficiency levels."
           />
           <FeatureCard
-            icon={<Brain className="h-6 w-6 text-amber-600" />}
+            icon={<Brain className="h-6 w-6 text-amber-600 dark:text-amber-400" />}
             title="3. Deterministic Matching"
             desc="Explainable algorithms calculate match scores with clear matched, partial, and missing skill breakdowns."
           />
           <FeatureCard
-            icon={<Target className="h-6 w-6 text-rose-600" />}
+            icon={<Target className="h-6 w-6 text-rose-600 dark:text-rose-400" />}
             title="4. Actionable Gap Analysis"
             desc="Pinpoint missing skills with concrete, prioritized growth recommendations to qualify for target roles."
           />
@@ -182,22 +182,22 @@ export function LandingPage() {
 
       {/* Roles */}
       <section className="mx-auto max-w-7xl px-4 pb-20 sm:px-6 lg:px-8">
-        <h2 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-ink-900 mb-8">Role Perspectives</h2>
+        <h2 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-ink-900 dark:text-white mb-8">Role Perspectives</h2>
         <div className="grid gap-6 md:grid-cols-3">
           <RoleCard
-            icon={<GraduationCap className="h-6 w-6 text-brand-600" />}
+            icon={<GraduationCap className="h-6 w-6 text-brand-600 dark:text-brand-400" />}
             title="Student"
             points={['Portable Skill Passport', 'Evidence and credential vault', 'Verified internship matching', 'Targeted skill gap roadmap']}
             onClick={() => navigate('/student/dashboard')}
           />
           <RoleCard
-            icon={<Building2 className="h-6 w-6 text-accent-600" />}
+            icon={<Building2 className="h-6 w-6 text-accent-600 dark:text-accent-400" />}
             title="Organization"
             points={['Define required and preferred skills', 'Rank candidates by proof', 'Inspect explainable match criteria', 'Manage hiring pipeline']}
             onClick={() => navigate('/org/dashboard')}
           />
           <RoleCard
-            icon={<Users className="h-6 w-6 text-amber-600" />}
+            icon={<Users className="h-6 w-6 text-amber-600 dark:text-amber-400" />}
             title="Team Creator"
             points={['Assemble multidisciplinary squads', 'Analyze complementary skill coverage', 'Identify team capability deficits', 'Slot verified candidates']}
             onClick={() => navigate('/team/matching')}
@@ -205,15 +205,15 @@ export function LandingPage() {
         </div>
       </section>
 
-      <footer className="border-t border-ink-200/80 bg-white">
+      <footer className="border-t border-ink-200/80 dark:border-ink-800 bg-white dark:bg-ink-900 transition-colors">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-6 sm:flex-row sm:px-6 lg:px-8">
-          <div className="flex items-center gap-2 text-xs text-ink-500 font-medium">
-            <span className="font-bold text-ink-900">EvidentX</span> · Explainable Skills Matching Platform
+          <div className="flex items-center gap-2 text-xs text-ink-500 dark:text-ink-400 font-medium">
+            <span className="font-bold text-ink-900 dark:text-white">EvidentX</span> · Explainable Skills Matching Platform
           </div>
-          <div className="flex items-center gap-4 text-xs text-ink-500">
-            <span className="inline-flex items-center gap-1.5"><Layers className="h-3.5 w-3.5 text-brand-600" /> Deterministic matching</span>
-            <span className="inline-flex items-center gap-1.5"><Shield className="h-3.5 w-3.5 text-accent-600" /> Fair by design</span>
-            <span className="inline-flex items-center gap-1.5"><TrendingUp className="h-3.5 w-3.5 text-amber-600" /> Evidence-based</span>
+          <div className="flex items-center gap-4 text-xs text-ink-500 dark:text-ink-400">
+            <span className="inline-flex items-center gap-1.5"><Layers className="h-3.5 w-3.5 text-brand-600 dark:text-brand-400" /> Deterministic matching</span>
+            <span className="inline-flex items-center gap-1.5"><Shield className="h-3.5 w-3.5 text-accent-600 dark:text-accent-400" /> Fair by design</span>
+            <span className="inline-flex items-center gap-1.5"><TrendingUp className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" /> Evidence-based</span>
           </div>
         </div>
       </footer>
@@ -225,8 +225,8 @@ function FeatureCard({ icon, title, desc }: { icon: React.ReactNode; title: stri
   return (
     <div className="card p-6">
       <div>{icon}</div>
-      <h3 className="mt-4 font-display text-base font-bold text-ink-900">{title}</h3>
-      <p className="mt-1.5 text-xs text-ink-600 leading-relaxed">{desc}</p>
+      <h3 className="mt-4 font-display text-base font-bold text-ink-900 dark:text-white">{title}</h3>
+      <p className="mt-1.5 text-xs text-ink-600 dark:text-ink-300 leading-relaxed">{desc}</p>
     </div>
   );
 }
@@ -268,16 +268,16 @@ function RoleCard({
 
 function PassportPreview() {
   return (
-    <div className="card p-6 shadow-lift border-brand-200/80 bg-white">
-      <div className="flex items-center gap-3 border-b border-ink-100 pb-4">
+    <div className="card p-6 shadow-lift border-brand-200/80 dark:border-brand-900/60">
+      <div className="flex items-center gap-3 border-b border-ink-100 dark:border-[#30363d] pb-4">
         <div className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-brand-600 to-brand-800 text-white font-bold text-sm shadow-card select-none">
           RS
         </div>
         <div>
-          <div className="font-display font-bold text-ink-900 text-sm">Rishav Singh</div>
-          <div className="text-xs text-ink-500">B.Tech CSE · ITER SOA</div>
+          <div className="font-display font-bold text-ink-900 dark:text-white text-sm">Rishav Singh</div>
+          <div className="text-xs text-ink-500 dark:text-ink-400">B.Tech CSE · ITER SOA</div>
         </div>
-        <div className="ml-auto inline-flex items-center gap-1 rounded-full border border-accent-200 bg-accent-50 px-2.5 py-0.5 text-xs font-semibold text-accent-800">
+        <div className="ml-auto inline-flex items-center gap-1 rounded-full border border-accent-200 dark:border-accent-800 bg-accent-50 dark:bg-accent-950/70 px-2.5 py-0.5 text-xs font-semibold text-accent-800 dark:text-accent-300">
           <Shield className="h-3 w-3" /> Verified
         </div>
       </div>
@@ -291,10 +291,10 @@ function PassportPreview() {
         ].map((row) => (
           <div key={row.s}>
             <div className="flex items-center justify-between text-xs">
-              <span className="font-semibold text-ink-800">{row.s}</span>
-              <span className="font-bold text-ink-900">{row.v}%</span>
+              <span className="font-semibold text-ink-800 dark:text-ink-200">{row.s}</span>
+              <span className="font-bold text-ink-900 dark:text-white">{row.v}%</span>
             </div>
-            <div className="mt-1 h-1.5 rounded-full bg-ink-100 overflow-hidden">
+            <div className="mt-1 h-1.5 rounded-full bg-ink-100 dark:bg-[#30363d] overflow-hidden">
               <div
                 className={`h-full rounded-full ${
                   row.v >= 70 ? 'bg-accent-600' : row.v >= 40 ? 'bg-amber-500' : 'bg-rose-500'
@@ -302,15 +302,15 @@ function PassportPreview() {
                 style={{ width: `${row.v}%` }}
               />
             </div>
-            <div className="mt-1 flex items-center gap-1 text-[10px] text-ink-400">
-              <FileBadge className="h-3 w-3 text-ink-400" />
+            <div className="mt-1 flex items-center gap-1 text-[10px] text-ink-400 dark:text-ink-500">
+              <FileBadge className="h-3 w-3 text-ink-400 dark:text-ink-500" />
               <span>{row.e}</span>
             </div>
           </div>
         ))}
       </div>
-      <div className="mt-4 flex items-center gap-2 rounded-xl bg-brand-50 border border-brand-200/80 p-3 text-xs text-brand-800 font-medium">
-        <Brain className="h-4 w-4 text-brand-600 flex-shrink-0" />
+      <div className="mt-4 flex items-center gap-2 rounded-xl bg-brand-50 dark:bg-brand-950/60 border border-brand-200/80 dark:border-brand-850 p-3 text-xs text-brand-800 dark:text-brand-300 font-medium">
+        <Brain className="h-4 w-4 text-brand-600 dark:text-brand-400 flex-shrink-0" />
         <span>87% match for Frontend Developer Intern: inspect verified proof breakdown</span>
       </div>
     </div>
