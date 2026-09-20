@@ -53,17 +53,12 @@ const TEAM_NAV: NavItem[] = [
   { label: 'Create Team', path: '/team/create', icon: <PlusCircle className="h-4 w-4" /> },
 ];
 
-const INSTITUTION_NAV: NavItem[] = [
-  { label: 'Accreditation & Analytics', path: '/institution/analytics', icon: <Building2 className="h-4 w-4" /> },
-  { label: 'Fairness & Explainability', path: '/fairness', icon: <Shield className="h-4 w-4" /> },
-];
-
 const COMMON_NAV: NavItem[] = [
   { label: 'Fairness & Explainability', path: '/fairness', icon: <Shield className="h-4 w-4" /> },
   { label: 'About & Role Selection', path: '/', icon: <Info className="h-4 w-4" /> },
 ];
 
-type Role = 'student' | 'org' | 'team' | 'institution';
+type Role = 'student' | 'org' | 'team';
 
 export function AppShell({
   role,
@@ -98,13 +93,7 @@ export function AppShell({
   }, []);
 
   const nav =
-    role === 'student'
-      ? STUDENT_NAV
-      : role === 'org'
-      ? ORG_NAV
-      : role === 'institution'
-      ? INSTITUTION_NAV
-      : TEAM_NAV;
+    role === 'student' ? STUDENT_NAV : role === 'org' ? ORG_NAV : TEAM_NAV;
 
   const roleConfig = {
     student: {
@@ -121,11 +110,6 @@ export function AppShell({
       label: 'Team Creator View',
       badgeClass: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800',
       gradient: 'from-amber-500 to-orange-600',
-    },
-    institution: {
-      label: 'Institutional Dean View',
-      badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800',
-      gradient: 'from-emerald-600 to-teal-800',
     },
   }[role];
 
@@ -315,46 +299,53 @@ export function AppShell({
                     <span className="text-[10px] font-semibold text-ink-500 capitalize">{profile?.role || 'Guest'} Account</span>
                   </div>
                   <div className="grid grid-cols-2 gap-1.5">
-                    <button
-                      onClick={() => handleNavClick('/student/dashboard')}
-                      className={`rounded-xl p-2 text-center text-xs font-bold transition ${
-                        role === 'student'
-                          ? 'bg-brand-600 text-white shadow-soft'
-                          : 'bg-white dark:bg-ink-800 border border-ink-200 dark:border-ink-700 text-ink-600 dark:text-ink-300 hover:bg-ink-100 dark:hover:bg-ink-700'
-                      }`}
-                    >
-                      Student
-                    </button>
-                    <button
-                      onClick={() => handleNavClick('/org/dashboard')}
-                      className={`rounded-xl p-2 text-center text-xs font-bold transition ${
-                        role === 'org'
-                          ? 'bg-accent-600 text-white shadow-soft'
-                          : 'bg-white dark:bg-ink-800 border border-ink-200 dark:border-ink-700 text-ink-600 dark:text-ink-300 hover:bg-ink-100 dark:hover:bg-ink-700'
-                      }`}
-                    >
-                      Recruiter
-                    </button>
-                    <button
-                      onClick={() => handleNavClick('/team/matching')}
-                      className={`rounded-xl p-2 text-center text-xs font-bold transition ${
-                        role === 'team'
-                          ? 'bg-amber-600 text-white shadow-soft'
-                          : 'bg-white dark:bg-ink-800 border border-ink-200 dark:border-ink-700 text-ink-600 dark:text-ink-300 hover:bg-ink-100 dark:hover:bg-ink-700'
-                      }`}
-                    >
-                      Team Squads
-                    </button>
-                    <button
-                      onClick={() => handleNavClick('/institution/analytics')}
-                      className={`rounded-xl p-2 text-center text-xs font-bold transition ${
-                        role === 'institution'
-                          ? 'bg-emerald-600 text-white shadow-soft'
-                          : 'bg-white dark:bg-ink-800 border border-ink-200 dark:border-ink-700 text-ink-600 dark:text-ink-300 hover:bg-ink-100 dark:hover:bg-ink-700'
-                      }`}
-                    >
-                      Dean Portal
-                    </button>
+                    {profile?.role === 'organization' ? (
+                      <>
+                        <button
+                          onClick={() => handleNavClick('/org/dashboard')}
+                          className={`rounded-xl p-2 text-center text-xs font-bold transition ${
+                            role === 'org'
+                              ? 'bg-accent-600 text-white shadow-soft'
+                              : 'bg-white dark:bg-ink-800 border border-ink-200 dark:border-ink-700 text-ink-600 dark:text-ink-300 hover:bg-ink-100 dark:hover:bg-ink-700'
+                          }`}
+                        >
+                          Organization
+                        </button>
+                        <button
+                          onClick={() => handleNavClick('/team/matching')}
+                          className={`rounded-xl p-2 text-center text-xs font-bold transition ${
+                            role === 'team'
+                              ? 'bg-amber-600 text-white shadow-soft'
+                              : 'bg-white dark:bg-ink-800 border border-ink-200 dark:border-ink-700 text-ink-600 dark:text-ink-300 hover:bg-ink-100 dark:hover:bg-ink-700'
+                          }`}
+                        >
+                          Team Squads
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => handleNavClick('/student/dashboard')}
+                          className={`rounded-xl p-2 text-center text-xs font-bold transition ${
+                            role === 'student'
+                              ? 'bg-brand-600 text-white shadow-soft'
+                              : 'bg-white dark:bg-ink-800 border border-ink-200 dark:border-ink-700 text-ink-600 dark:text-ink-300 hover:bg-ink-100 dark:hover:bg-ink-700'
+                          }`}
+                        >
+                          Student
+                        </button>
+                        <button
+                          onClick={() => handleNavClick('/team/matching')}
+                          className={`rounded-xl p-2 text-center text-xs font-bold transition ${
+                            role === 'team'
+                              ? 'bg-amber-600 text-white shadow-soft'
+                              : 'bg-white dark:bg-ink-800 border border-ink-200 dark:border-ink-700 text-ink-600 dark:text-ink-300 hover:bg-ink-100 dark:hover:bg-ink-700'
+                          }`}
+                        >
+                          Team Squads
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
 

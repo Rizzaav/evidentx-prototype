@@ -274,18 +274,6 @@ export function CommandPalette({ isOpen, onClose, onOpenAuthModal }: CommandPale
         badge: 'Squad',
       },
       {
-        id: 'nav_institution_analytics',
-        category: 'Navigation',
-        title: 'Institutional Dean & Accreditation Analytics',
-        subtitle: 'NAAC Criterion 2.6 & 5.2, NBA PO attainment & curriculum gap intelligence',
-        icon: <Building2 className="h-4 w-4 text-emerald-600" />,
-        action: () => {
-          navigate('/institution/analytics');
-          onClose();
-        },
-        badge: 'Dean',
-      },
-      {
         id: 'nav_fairness',
         category: 'Navigation',
         title: 'Fairness & Anti-Bias Policy',

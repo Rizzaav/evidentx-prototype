@@ -64,9 +64,6 @@ const PublicPassportPage = lazy(() =>
 const StudentInterviewCoachPage = lazy(() =>
   import('@/pages/StudentInterviewCoachPage').then((m) => ({ default: m.StudentInterviewCoachPage }))
 );
-const InstitutionalAnalyticsPage = lazy(() =>
-  import('@/pages/InstitutionalAnalyticsPage').then((m) => ({ default: m.InstitutionalAnalyticsPage }))
-);
 const SquadWorkspacePage = lazy(() =>
   import('@/pages/SquadWorkspacePage').then((m) => ({ default: m.SquadWorkspacePage }))
 );
@@ -182,17 +179,6 @@ function AppRouter() {
       <AppShell role="team" activePath={path}>
         <Suspense fallback={<PageLoader />}>
           {renderTeam(seg)}
-        </Suspense>
-      </AppShell>
-    );
-  }
-
-  // ===== Institution routes =====
-  if (seg[0] === 'institution') {
-    return (
-      <AppShell role="institution" activePath={path}>
-        <Suspense fallback={<PageLoader />}>
-          <InstitutionalAnalyticsPage />
         </Suspense>
       </AppShell>
     );
