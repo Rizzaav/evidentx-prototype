@@ -25,6 +25,8 @@ import {
   Trash2,
   AlertTriangle,
   AlertCircle,
+  Webhook,
+  FileCode2,
 } from 'lucide-react';
 import {
   PageHeader,
@@ -35,13 +37,15 @@ import {
   EmptyState,
 } from '@/components/ui';
 import { useDemoStudent } from '@/lib/useDemoStudent';
-import { getStudentEvidence, skillMap, SKILLS, evidenceSkillStrength } from '@/data/mockData';
+import { getStudentEvidence, getStudentSkills, skillMap, SKILLS, evidenceSkillStrength } from '@/data/mockData';
 import { useCustomStudents } from '@/lib/customStudents';
 import { useRouter } from '@/lib/router';
 import { scanGithubRepository, type GithubScanResult } from '@/lib/githubScanner';
 import { createEvidenceFingerprint, type EvidenceFingerprint } from '@/lib/crypto';
 import { verifyUploadedFile, inspectIssuerAuthority, type FileVerificationResult } from '@/lib/credentialVerifier';
 import { notifyRecruitersOnEvidenceUpdate } from '@/lib/notifications';
+import { LmsWebhookSimulatorModal } from '@/components/LmsWebhookSimulatorModal';
+import { VerifiableCredentialModal } from '@/components/VerifiableCredentialModal';
 import type { Evidence, EvidenceType, VerificationStatus } from '@/types';
 
 const FILTERS = ['all', 'coursework', 'project', 'competition', 'credential'] as const;
@@ -52,6 +56,8 @@ export function EvidencePage() {
   const { navigate } = useRouter();
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>('all');
   const [showModal, setShowModal] = useState(false);
+  const [showLmsModal, setShowLmsModal] = useState(false);
+  const [showVcModal, setShowVcModal] = useState(false);
   const [modalTab, setModalTab] = useState<'form' | 'github' | 'upload'>('form');
 
   // Edit Evidence Mode
@@ -393,7 +399,23 @@ export function EvidencePage() {
         title="Evidence & Credentials"
         subtitle="Every skill is backed by live verifiable proof and cryptographic SHA-256 hashes"
         right={
-          <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <button
+              onClick={() => setShowLmsModal(true)}
+              className="btn-secondary text-xs inline-flex items-center justify-center gap-1.5 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 shadow-2xs"
+              title="Simulate automated webhook course completion ingestion (NPTEL / Canvas / Coursera)"
+            >
+              <Webhook className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+              <span>LMS & Webhook Sync</span>
+            </button>
+            <button
+              onClick={() => setShowVcModal(true)}
+              className="btn-secondary text-xs inline-flex items-center justify-center gap-1.5 shadow-2xs"
+              title="Export standard W3C Verifiable Credential (JSON-LD) with Ed25519 signature"
+            >
+              <FileCode2 className="h-4 w-4 text-brand-600 dark:text-brand-400" />
+              <span>W3C VC (JSON-LD)</span>
+            </button>
             <button
               onClick={() => navigate(`/passport/${studentId}`)}
               className="btn-secondary text-xs inline-flex items-center justify-center gap-1.5 shadow-2xs"
@@ -1091,6 +1113,25 @@ export function EvidencePage() {
           </div>
         </div>
       )}
+
+      {/* LMS & Webhook Simulator Modal */}
+      <LmsWebhookSimulatorModal
+        isOpen={showLmsModal}
+        onClose={() => setShowLmsModal(false)}
+        activeStudentId={studentId}
+        onEvidenceAdded={() => {
+          setAuditAlertMessage('Automated LMS Credential received, verified, and sealed with SHA-256!');
+        }}
+      />
+
+      {/* W3C Verifiable Credential Modal */}
+      <VerifiableCredentialModal
+        isOpen={showVcModal}
+        onClose={() => setShowVcModal(false)}
+        student={student}
+        studentSkills={getStudentSkills(studentId)}
+        evidenceList={evidence}
+      />
     </div>
   );
 }

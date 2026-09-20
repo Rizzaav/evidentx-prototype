@@ -64,6 +64,12 @@ const PublicPassportPage = lazy(() =>
 const StudentInterviewCoachPage = lazy(() =>
   import('@/pages/StudentInterviewCoachPage').then((m) => ({ default: m.StudentInterviewCoachPage }))
 );
+const InstitutionalAnalyticsPage = lazy(() =>
+  import('@/pages/InstitutionalAnalyticsPage').then((m) => ({ default: m.InstitutionalAnalyticsPage }))
+);
+const SquadWorkspacePage = lazy(() =>
+  import('@/pages/SquadWorkspacePage').then((m) => ({ default: m.SquadWorkspacePage }))
+);
 
 import { ToastProvider } from '@/lib/toast';
 
@@ -181,6 +187,17 @@ function AppRouter() {
     );
   }
 
+  // ===== Institution routes =====
+  if (seg[0] === 'institution') {
+    return (
+      <AppShell role="institution" activePath={path}>
+        <Suspense fallback={<PageLoader />}>
+          <InstitutionalAnalyticsPage />
+        </Suspense>
+      </AppShell>
+    );
+  }
+
   // Fallback
   return (
     <Suspense fallback={<PageLoader />}>
@@ -234,6 +251,10 @@ function renderTeam(seg: string[]): React.ReactNode {
   if (seg[1] === 'matching' && !seg[2]) return <TeamBuilderPage />;
   // /team/matching/:teamId
   if (seg[1] === 'matching' && seg[2]) return <TeamBuilderPage teamId={seg[2]} />;
+  // /team/workspace
+  if (seg[1] === 'workspace' && !seg[2]) return <SquadWorkspacePage />;
+  // /team/workspace/:teamId
+  if (seg[1] === 'workspace' && seg[2]) return <SquadWorkspacePage teamId={seg[2]} />;
   // /team/create
   if (seg[1] === 'create') return <CreateTeamPage />;
   return <TeamBuilderPage />;

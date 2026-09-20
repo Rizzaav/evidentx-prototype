@@ -20,6 +20,8 @@ import {
   Sparkles,
   Command,
   Brain,
+  Building2,
+  Webhook,
 } from 'lucide-react';
 import { useRouter } from '@/lib/router';
 import { useAuth } from '@/lib/authContext';
@@ -93,6 +95,20 @@ export function CommandPalette({ isOpen, onClose, onOpenAuthModal }: CommandPale
           onClose();
         },
         badge: 'Share',
+      });
+
+      items.push({
+        id: 'action_lms_sync',
+        category: 'Quick Actions',
+        title: 'Simulate LMS & Webhook Credential Sync',
+        subtitle: 'Test automated NPTEL & Canvas course completion ingestion',
+        icon: <Webhook className="h-4 w-4 text-emerald-600" />,
+        action: () => {
+          navigate('/student/evidence');
+          toast.info('Opening Evidence Vault: Click "LMS & Webhook Sync" to simulate incoming payloads');
+          onClose();
+        },
+        badge: 'LMS Sync',
       });
     }
 
@@ -244,6 +260,30 @@ export function CommandPalette({ isOpen, onClose, onOpenAuthModal }: CommandPale
           onClose();
         },
         badge: 'Squad',
+      },
+      {
+        id: 'nav_squad_workspace',
+        category: 'Navigation',
+        title: 'Collaborative Squad Workspace & Kanban',
+        subtitle: 'Milestone deliverables, simulated GitHub CI sync & team synergy matrix',
+        icon: <FolderGit2 className="h-4 w-4 text-amber-600" />,
+        action: () => {
+          navigate('/team/workspace');
+          onClose();
+        },
+        badge: 'Squad',
+      },
+      {
+        id: 'nav_institution_analytics',
+        category: 'Navigation',
+        title: 'Institutional Dean & Accreditation Analytics',
+        subtitle: 'NAAC Criterion 2.6 & 5.2, NBA PO attainment & curriculum gap intelligence',
+        icon: <Building2 className="h-4 w-4 text-emerald-600" />,
+        action: () => {
+          navigate('/institution/analytics');
+          onClose();
+        },
+        badge: 'Dean',
       },
       {
         id: 'nav_fairness',

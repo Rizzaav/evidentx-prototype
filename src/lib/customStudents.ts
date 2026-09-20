@@ -101,6 +101,8 @@ export function updateEvidenceRecord(
   dbCreateEvidence(evidenceItem).catch((err) => console.warn('Supabase sync evidence error:', err));
 }
 
+export const addCustomEvidence = updateEvidenceRecord;
+
 export function deleteEvidenceRecord(evidenceId: string) {
   const data = loadCustom();
   data.evidence = data.evidence.filter((e) => e.id !== evidenceId);

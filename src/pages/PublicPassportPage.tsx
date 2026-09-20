@@ -19,6 +19,7 @@ import {
   X,
   Layers,
   Code2,
+  FileCode2,
   Download,
   Linkedin,
 } from 'lucide-react';
@@ -29,6 +30,7 @@ import { useRouter } from '@/lib/router';
 import { useAuth } from '@/lib/authContext';
 import { generateSha256 } from '@/lib/crypto';
 import { useToast } from '@/lib/toast';
+import { VerifiableCredentialModal } from '@/components/VerifiableCredentialModal';
 
 export function PublicPassportPage({ studentId }: { studentId: string }) {
   const { navigate } = useRouter();
@@ -39,6 +41,7 @@ export function PublicPassportPage({ studentId }: { studentId: string }) {
   const [verificationHash, setVerificationHash] = useState<string>('');
   const [showInspector, setShowInspector] = useState(false);
   const [showEmbedModal, setShowEmbedModal] = useState(false);
+  const [showVcModal, setShowVcModal] = useState(false);
   const [embedTab, setEmbedTab] = useState<'markdown' | 'html' | 'linkedin' | 'iframe'>('markdown');
   const [copiedSnippet, setCopiedSnippet] = useState(false);
   const [copiedHash, setCopiedHash] = useState(false);
@@ -140,6 +143,15 @@ export function PublicPassportPage({ studentId }: { studentId: string }) {
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowVcModal(true)}
+            className="btn-secondary text-xs py-2 px-3 shadow-2xs inline-flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+            title="Inspect W3C Verifiable Credential (JSON-LD) with Ed25519 digital signature"
+          >
+            <FileCode2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+            <span>W3C VC (JSON-LD)</span>
+          </button>
+
           <button
             onClick={() => setShowEmbedModal(true)}
             className="btn-secondary text-xs py-2 px-3 shadow-2xs inline-flex items-center gap-1.5"
@@ -254,13 +266,23 @@ export function PublicPassportPage({ studentId }: { studentId: string }) {
             </div>
           </div>
 
-          <button
-            onClick={() => setShowInspector(true)}
-            className="btn-secondary text-xs py-1.5 px-3 bg-white/10 hover:bg-white/20 text-white border-white/20 whitespace-nowrap inline-flex items-center gap-1.5"
-          >
-            <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
-            <span>Inspect Cryptographic Proof</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowVcModal(true)}
+              className="btn-secondary text-xs py-1.5 px-3 bg-white/10 hover:bg-white/20 text-white border-white/20 whitespace-nowrap inline-flex items-center gap-1.5"
+            >
+              <FileCode2 className="h-3.5 w-3.5 text-emerald-400" />
+              <span>W3C VC (JSON-LD)</span>
+            </button>
+
+            <button
+              onClick={() => setShowInspector(true)}
+              className="btn-secondary text-xs py-1.5 px-3 bg-white/10 hover:bg-white/20 text-white border-white/20 whitespace-nowrap inline-flex items-center gap-1.5"
+            >
+              <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
+              <span>Inspect Proof</span>
+            </button>
+          </div>
         </div>
 
         {/* Section 1: Verified Skill Competencies */}
@@ -744,6 +766,15 @@ export function PublicPassportPage({ studentId }: { studentId: string }) {
           </div>
         </div>
       )}
+
+      {/* W3C Verifiable Credential Modal */}
+      <VerifiableCredentialModal
+        isOpen={showVcModal}
+        onClose={() => setShowVcModal(false)}
+        student={student}
+        studentSkills={studentSkills}
+        evidenceList={evidenceList}
+      />
     </div>
   );
 }

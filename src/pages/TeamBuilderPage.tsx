@@ -18,6 +18,7 @@ import {
   X,
   FileCheck,
   Zap,
+  FolderGit2,
 } from 'lucide-react';
 import { useRouter } from '@/lib/router';
 import {
@@ -193,6 +194,14 @@ ${team.requiredSkills
           >
             <FileCheck className="h-4 w-4 text-amber-200" />
             Team Credential Dossier {selectedStudentIds.length > 0 && `(${selectedStudentIds.length})`}
+          </button>
+          <button
+            onClick={() => navigate(`/team/workspace/${team.id}`)}
+            className="inline-flex items-center gap-2 rounded-xl bg-white/20 hover:bg-white/30 text-white px-4 py-2 text-xs font-semibold backdrop-blur-sm transition active:scale-95"
+            title="Open live collaborative milestone Kanban workspace for this squad"
+          >
+            <FolderGit2 className="h-4 w-4 text-white" />
+            <span>Open Squad Workspace</span>
           </button>
           {selectedStudentIds.length > 0 && (
             <button
