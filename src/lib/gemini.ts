@@ -88,6 +88,57 @@ ${evidenceText}
 ${matchText}`;
 }
 
+const GEMINI_MODELS = [
+  'gemini-3-flash-preview',
+  'gemini-3.1-flash-lite',
+  'gemini-flash-latest',
+];
+
+async function executeGeminiRequest(
+  apiKey: string,
+  body: Record<string, any>
+): Promise<string> {
+  let lastError: Error | null = null;
+
+  for (const model of GEMINI_MODELS) {
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        }
+      );
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        const msg = errData?.error?.message || `HTTP ${response.status} ${response.statusText}`;
+        if (response.status === 404 || response.status === 503) {
+          lastError = new Error(msg);
+          continue;
+        }
+        throw new Error(msg);
+      }
+
+      const data = await response.json();
+      const candidateText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!candidateText) {
+        throw new Error('Gemini returned an empty response.');
+      }
+
+      return candidateText.trim();
+    } catch (error: any) {
+      lastError = error;
+      if (error.name === 'TypeError') {
+        throw error;
+      }
+    }
+  }
+
+  throw lastError || new Error('Failed to generate response from Gemini AI.');
+}
+
 /**
  * Calls Google Gemini REST API to generate a concise 3-sentence executive summary.
  */
@@ -117,35 +168,15 @@ Follow these rules strictly:
 Please provide an executive technical evaluation summary for this candidate.`;
 
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          systemInstruction: { parts: [{ text: systemInstruction }] },
-          generationConfig: {
-            temperature: 0.2,
-            maxOutputTokens: 500,
-          },
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      const errData = await response.json().catch(() => ({}));
-      const msg = errData?.error?.message || `HTTP ${response.status} ${response.statusText}`;
-      throw new Error(msg);
-    }
-
-    const data = await response.json();
-    const candidateText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!candidateText) {
-      throw new Error('Gemini returned an empty response.');
-    }
-
-    return candidateText.trim();
+    return await executeGeminiRequest(apiKey, {
+      contents: [{ parts: [{ text: prompt }] }],
+      systemInstruction: { parts: [{ text: systemInstruction }] },
+      generationConfig: {
+        temperature: 0.2,
+        maxOutputTokens: 1000,
+        thinkingConfig: { thinkingBudget: 0 },
+      },
+    });
   } catch (error: any) {
     console.error('Gemini API generateCandidateSummary error:', error);
     throw error;
@@ -192,35 +223,15 @@ Instructions:
   ];
 
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents,
-          systemInstruction: { parts: [{ text: systemInstruction }] },
-          generationConfig: {
-            temperature: 0.3,
-            maxOutputTokens: 800,
-          },
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      const errData = await response.json().catch(() => ({}));
-      const msg = errData?.error?.message || `HTTP ${response.status} ${response.statusText}`;
-      throw new Error(msg);
-    }
-
-    const data = await response.json();
-    const candidateText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!candidateText) {
-      throw new Error('Gemini returned an empty response.');
-    }
-
-    return candidateText.trim();
+    return await executeGeminiRequest(apiKey, {
+      contents,
+      systemInstruction: { parts: [{ text: systemInstruction }] },
+      generationConfig: {
+        temperature: 0.3,
+        maxOutputTokens: 1200,
+        thinkingConfig: { thinkingBudget: 0 },
+      },
+    });
   } catch (error: any) {
     console.error('Gemini API askCandidateQuestion error:', error);
     throw error;

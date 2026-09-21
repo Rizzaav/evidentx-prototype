@@ -182,7 +182,7 @@ export function CandidateAiDossier({ student, opportunity }: CandidateAiDossierP
                 AI Candidate Dossier & Evaluator
               </h3>
               <span className="inline-flex items-center gap-1 rounded-full bg-indigo-100/90 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-indigo-800 border border-indigo-200/70">
-                <Bot className="h-3 w-3" /> Gemini 1.5
+                <Bot className="h-3 w-3" /> Gemini AI
               </span>
             </div>
             <p className="text-xs text-indigo-700">
