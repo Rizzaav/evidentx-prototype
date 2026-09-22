@@ -42,7 +42,7 @@ Instead of treating a skill as just a self-declared label, EvidentX connects ski
 
 ---
 
-## ✨ Key Features
+## ✨ Key Features 
 
 ### 1. 📘 Skill Passport
 
