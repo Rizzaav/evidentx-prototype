@@ -214,10 +214,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const cleanEmail = email.trim().toLowerCase();
     const cleanPassword = password.trim();
 
-    // Check permanently stored registered profiles & roles first
+    if (!cleanEmail) {
+      return { error: 'Please enter your email address' };
+    }
+    if (!cleanPassword) {
+      return { error: 'Please enter your password' };
+    }
+
+    const credKey = 'evx_user_credentials_v1';
+    let savedCreds: Record<string, string> = {};
     let savedProfile: UserProfile | undefined;
     let savedRole: UserRole | undefined;
     try {
+      savedCreds = JSON.parse(localStorage.getItem(credKey) || '{}');
       const savedProfiles = JSON.parse(localStorage.getItem(PROFILES_KEY) || '{}');
       savedProfile = savedProfiles[cleanEmail];
       const savedRoles = JSON.parse(localStorage.getItem('evx_user_roles_v1') || '{}');
@@ -225,6 +234,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {}
 
     // 1. Try Supabase cloud auth if configured
+    let cloudError: string | null = null;
+    let isCloudNetworkError = false;
+
     if (isSupabaseConfigured() && supabase) {
       try {
         const { data, error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password: cleanPassword });
@@ -257,67 +269,96 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const savedProfiles = JSON.parse(localStorage.getItem(PROFILES_KEY) || '{}');
             savedProfiles[cleanEmail] = p;
             localStorage.setItem(PROFILES_KEY, JSON.stringify(savedProfiles));
+
+            // Sync verified password locally
+            savedCreds[cleanEmail] = cleanPassword;
+            localStorage.setItem(credKey, JSON.stringify(savedCreds));
           } catch {}
           return { error: null };
+        } else if (error) {
+          cloudError = error.message;
+          const msg = (error.message || '').toLowerCase();
+          if (msg.includes('fetch') || msg.includes('network') || msg.includes('failed to fetch')) {
+            isCloudNetworkError = true;
+          }
         }
       } catch (err: any) {
         console.warn('Cloud sign in fallback:', err);
+        cloudError = err?.message || 'Authentication service error';
+        isCloudNetworkError = true;
       }
     }
 
     // 2. Local Account Authentication & Matching
+    // Check if account has credentials saved locally (e.g. registered locally or offline)
+    if (savedCreds[cleanEmail] !== undefined) {
+      if (savedCreds[cleanEmail] !== cleanPassword) {
+        return { error: 'Incorrect password. Please try again.' };
+      }
+
+      const userRole: UserRole =
+        roleHint ||
+        savedRole ||
+        savedProfile?.role ||
+        (cleanEmail.includes('org') || cleanEmail.includes('recruiter') ? 'organization' : 'student');
+
+      const authenticatedProfile: UserProfile = savedProfile || {
+        id: (userRole === 'organization' ? `org_usr_${Date.now()}` : `st_usr_${Date.now()}`),
+        email: cleanEmail,
+        name: cleanEmail.split('@')[0] || 'User',
+        role: userRole,
+        organization: userRole === 'organization' ? 'Enterprise Partner' : undefined,
+        university: userRole === 'student' ? 'University Student' : undefined,
+        program: userRole === 'student' ? 'Engineering' : undefined,
+        avatarColor: userRole === 'organization' ? 'from-accent-600 to-accent-800' : 'from-brand-500 to-brand-700',
+      };
+
+      setProfile(authenticatedProfile);
+      localStorage.setItem(LOCAL_USER_KEY, JSON.stringify(authenticatedProfile));
+      return { error: null };
+    }
+
+    // 3. Demo Student profile matching (e.g. mock accounts)
     const allStudentsMap = getAllStudentMap();
     const existingStudent = Object.values(allStudentsMap).find(
       (s) => s.email.toLowerCase() === cleanEmail
     );
 
-    const userRole: UserRole =
-      roleHint ||
-      savedRole ||
-      savedProfile?.role ||
-      (cleanEmail.includes('org') || cleanEmail.includes('recruiter') ? 'organization' : 'student');
+    if (existingStudent) {
+      const isDemoPasswordValid =
+        cleanPassword === 'demo123' ||
+        cleanPassword === 'password' ||
+        cleanPassword === 'evidentx';
 
-    const authenticatedProfile: UserProfile = {
-      id: savedProfile?.id || (userRole === 'student' ? existingStudent?.id : undefined) || (userRole === 'organization' ? `org_usr_${Date.now()}` : `usr_${Date.now()}`),
-      email: cleanEmail,
-      name: savedProfile?.name || (userRole === 'student' ? existingStudent?.name : undefined) || cleanEmail.split('@')[0] || 'User',
-      role: userRole,
-      organization: savedProfile?.organization || (userRole === 'organization' ? (savedProfile?.name || 'Enterprise Partner') : undefined),
-      university: userRole === 'student' ? (savedProfile?.university || existingStudent?.university || 'University Student') : undefined,
-      program: userRole === 'student' ? (savedProfile?.program || existingStudent?.program || 'Engineering') : undefined,
-      avatarColor: userRole === 'organization' ? 'from-accent-600 to-accent-800' : (savedProfile?.avatarColor || existingStudent?.avatarColor || 'from-brand-500 to-brand-700'),
-    };
+      if (!isDemoPasswordValid) {
+        return { error: 'Incorrect password for demo candidate account. (Use password: demo123)' };
+      }
 
-    // If new student user signing in for first time, register student record so matching works immediately
-    if (userRole === 'student' && !existingStudent) {
-      const studentRecord: Student = {
-        id: authenticatedProfile.id,
-        name: authenticatedProfile.name,
+      const authenticatedProfile: UserProfile = {
+        id: existingStudent.id,
         email: cleanEmail,
-        program: 'Computer Science',
-        year: '1st Year',
-        university: 'State University',
-        bio: 'Self-motivated student building verified skills on EvidentX.',
-        avatarColor: 'from-brand-500 to-brand-700',
-        interests: ['Web Development', 'Software Engineering'],
+        name: existingStudent.name,
+        role: 'student',
+        university: existingStudent.university,
+        program: existingStudent.program,
+        avatarColor: existingStudent.avatarColor,
       };
-      addCustomStudentRecord(studentRecord, [], {});
+
+      setProfile(authenticatedProfile);
+      localStorage.setItem(LOCAL_USER_KEY, JSON.stringify(authenticatedProfile));
+      return { error: null };
     }
 
-    // Update persistent registries
-    try {
-      const savedProfiles = JSON.parse(localStorage.getItem(PROFILES_KEY) || '{}');
-      savedProfiles[cleanEmail] = authenticatedProfile;
-      localStorage.setItem(PROFILES_KEY, JSON.stringify(savedProfiles));
+    // 4. If Cloud returned an explicit auth rejection (e.g., wrong password, unconfirmed email)
+    if (cloudError && !isCloudNetworkError) {
+      if (cloudError.toLowerCase().includes('confirm')) {
+        return { error: 'Email address not confirmed. Please check your inbox for the confirmation email.' };
+      }
+      return { error: 'Invalid email or password. Please check your credentials.' };
+    }
 
-      const savedRoles = JSON.parse(localStorage.getItem('evx_user_roles_v1') || '{}');
-      savedRoles[cleanEmail] = userRole;
-      localStorage.setItem('evx_user_roles_v1', JSON.stringify(savedRoles));
-    } catch {}
-
-    setProfile(authenticatedProfile);
-    localStorage.setItem(LOCAL_USER_KEY, JSON.stringify(authenticatedProfile));
-    return { error: null };
+    // 5. Otherwise: Account does not exist
+    return { error: 'No account found with this email. Please click "Create Account" to register.' };
   }, []);
 
   const signUpWithEmail = useCallback(
@@ -329,6 +370,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       metadata?: { organization?: string; university?: string; program?: string }
     ) => {
       const cleanEmail = email.trim().toLowerCase();
+      const cleanPassword = password.trim();
+
+      if (!cleanEmail) {
+        return { error: 'Please enter your email address' };
+      }
+      if (cleanPassword.length < 6) {
+        return { error: 'Password must be at least 6 characters long' };
+      }
+
       let createdUserId = role === 'organization' ? `org_usr_${Date.now()}` : `st_usr_${Date.now()}`;
 
       // Save local credentials and role mapping
@@ -336,7 +386,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const rolesKey = 'evx_user_roles_v1';
       try {
         const savedCreds = JSON.parse(localStorage.getItem(credKey) || '{}');
-        savedCreds[cleanEmail] = password;
+        savedCreds[cleanEmail] = cleanPassword;
         localStorage.setItem(credKey, JSON.stringify(savedCreds));
 
         const savedRoles = JSON.parse(localStorage.getItem(rolesKey) || '{}');
@@ -349,7 +399,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const { data, error } = await supabase.auth.signUp({
             email: cleanEmail,
-            password,
+            password: cleanPassword,
             options: {
               data: {
                 name,
@@ -361,8 +411,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (data?.user?.id) {
             createdUserId = data.user.id;
           }
-          if (error && !error.message.includes('fetch')) {
-            console.warn('Supabase cloud signup warning:', error.message);
+          if (error) {
+            const msg = error.message.toLowerCase();
+            if (!msg.includes('fetch')) {
+              if (msg.includes('already registered') || msg.includes('user already exists')) {
+                return { error: 'An account with this email already exists. Please sign in instead.' };
+              }
+              console.warn('Supabase cloud signup warning:', error.message);
+            }
           }
         } catch (err) {
           console.warn('Supabase cloud signup network warning, proceeding with local registration:', err);
