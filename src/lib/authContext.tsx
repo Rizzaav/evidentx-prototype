@@ -31,6 +31,19 @@ interface AuthContextType {
     name: string,
     metadata?: { organization?: string; university?: string; program?: string }
   ) => Promise<{ error: string | null }>;
+  sendEmailOtp: (
+    email: string,
+    roleHint?: UserRole,
+    name?: string,
+    metadata?: { organization?: string; university?: string; program?: string }
+  ) => Promise<{ error: string | null }>;
+  verifyEmailOtp: (
+    email: string,
+    token: string,
+    roleHint?: UserRole,
+    name?: string,
+    metadata?: { organization?: string; university?: string; program?: string }
+  ) => Promise<{ error: string | null }>;
   signInWithOAuth: (provider: 'github' | 'google') => Promise<{ error: string | null }>;
   signInWithGitHubUsername: (username: string) => Promise<{ error: string | null }>;
   signInWithGoogleCredentials: (name: string, email: string) => Promise<{ error: string | null }>;
@@ -467,6 +480,225 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     []
   );
 
+  const sendEmailOtp = useCallback(
+    async (
+      email: string,
+      roleHint?: UserRole,
+      name?: string,
+      metadata?: { organization?: string; university?: string; program?: string }
+    ) => {
+      const cleanEmail = email.trim().toLowerCase();
+      if (!cleanEmail || !cleanEmail.includes('@')) {
+        return { error: 'Please enter a valid email address.' };
+      }
+
+      if (isSupabaseConfigured() && supabase) {
+        try {
+          const { error } = await supabase.auth.signInWithOtp({
+            email: cleanEmail,
+            options: {
+              shouldCreateUser: true,
+              data: {
+                name: name || cleanEmail.split('@')[0],
+                role: roleHint || 'student',
+                ...metadata,
+              },
+            },
+          });
+
+          if (error) {
+            const msg = error.message.toLowerCase();
+            if (msg.includes('rate limit') || msg.includes('once every') || msg.includes('security purposes')) {
+              return { error: 'Please wait 60 seconds before requesting another verification code.' };
+            }
+            return { error: error.message };
+          }
+          return { error: null };
+        } catch (err: any) {
+          console.warn('Supabase signInWithOtp exception:', err);
+          return { error: err?.message || 'Failed to send verification code. Please try again.' };
+        }
+      }
+
+      // Offline / Local fallback: store test OTP code
+      const testCode = '123456';
+      sessionStorage.setItem(`evx_otp_${cleanEmail}`, testCode);
+      console.log(`[EvidentX Demo] Offline OTP for ${cleanEmail} is: ${testCode}`);
+      return { error: null };
+    },
+    []
+  );
+
+  const verifyEmailOtp = useCallback(
+    async (
+      email: string,
+      token: string,
+      roleHint?: UserRole,
+      name?: string,
+      metadata?: { organization?: string; university?: string; program?: string }
+    ) => {
+      const cleanEmail = email.trim().toLowerCase();
+      const cleanToken = token.trim().replace(/\s+/g, '');
+
+      if (!cleanEmail) {
+        return { error: 'Please enter your email address.' };
+      }
+      if (!cleanToken || cleanToken.length < 6) {
+        return { error: 'Please enter the complete 6-digit verification code.' };
+      }
+
+      let savedProfile: UserProfile | undefined;
+      let savedRole: UserRole | undefined;
+      try {
+        const savedProfiles = JSON.parse(localStorage.getItem(PROFILES_KEY) || '{}');
+        savedProfile = savedProfiles[cleanEmail];
+        const savedRoles = JSON.parse(localStorage.getItem('evx_user_roles_v1') || '{}');
+        savedRole = savedRoles[cleanEmail] || savedProfile?.role;
+      } catch {}
+
+      const userRole: UserRole =
+        roleHint ||
+        savedRole ||
+        savedProfile?.role ||
+        (cleanEmail.includes('org') || cleanEmail.includes('recruiter') ? 'organization' : 'student');
+
+      // 1. Try Supabase cloud OTP verification if configured
+      if (isSupabaseConfigured() && supabase) {
+        try {
+          let { data, error } = await supabase.auth.verifyOtp({
+            email: cleanEmail,
+            token: cleanToken,
+            type: 'email',
+          });
+
+          // If 'email' type fails, try 'signup' type in case Supabase treated it as a signup confirmation
+          if (error) {
+            const signupAttempt = await supabase.auth.verifyOtp({
+              email: cleanEmail,
+              token: cleanToken,
+              type: 'signup',
+            });
+            if (!signupAttempt.error && signupAttempt.data?.user) {
+              data = signupAttempt.data;
+              error = null;
+            }
+          }
+
+          if (!error && data?.user) {
+            const meta = data.user.user_metadata || {};
+            const resolvedName = meta.name || name || savedProfile?.name || cleanEmail.split('@')[0];
+            const p: UserProfile = {
+              id: data.user.id,
+              email: data.user.email || cleanEmail,
+              name: resolvedName,
+              role: userRole,
+              organization: meta.organization || metadata?.organization || savedProfile?.organization || (userRole === 'organization' ? resolvedName : undefined),
+              university: meta.university || metadata?.university || savedProfile?.university || (userRole === 'student' ? 'Verified Gmail Student' : undefined),
+              program: meta.program || metadata?.program || savedProfile?.program || (userRole === 'student' ? 'Computer Science' : undefined),
+              avatarColor: userRole === 'organization' ? 'from-accent-600 to-accent-800' : 'from-brand-500 to-brand-700',
+            };
+
+            setProfile(p);
+            localStorage.setItem(LOCAL_USER_KEY, JSON.stringify(p));
+
+            try {
+              const savedRoles = JSON.parse(localStorage.getItem('evx_user_roles_v1') || '{}');
+              savedRoles[cleanEmail] = userRole;
+              localStorage.setItem('evx_user_roles_v1', JSON.stringify(savedRoles));
+
+              const savedProfiles = JSON.parse(localStorage.getItem(PROFILES_KEY) || '{}');
+              savedProfiles[cleanEmail] = p;
+              localStorage.setItem(PROFILES_KEY, JSON.stringify(savedProfiles));
+            } catch {}
+
+            if (userRole === 'student') {
+              const studentRec: Student = {
+                id: p.id,
+                name: resolvedName,
+                email: cleanEmail,
+                program: p.program || 'Software Engineering',
+                year: '3rd Year',
+                university: p.university || 'Verified Academic Account',
+                bio: `Verified candidate authenticated via Gmail OTP (${cleanEmail}).`,
+                avatarColor: 'from-brand-500 to-brand-700',
+                interests: ['Full-Stack', 'Open Source', 'Software Engineering'],
+              };
+              addCustomStudentRecord(studentRec, [], {});
+
+              if (supabase) {
+                supabase
+                  .from('students')
+                  .upsert(
+                    {
+                      id: p.id,
+                      name: resolvedName,
+                      email: cleanEmail,
+                      program: studentRec.program,
+                      year: studentRec.year,
+                      university: studentRec.university,
+                      bio: studentRec.bio,
+                      avatar_color: studentRec.avatarColor,
+                      interests: studentRec.interests,
+                      user_id: data.user.id,
+                    },
+                    { onConflict: 'id' }
+                  )
+                  .then(({ error: upErr }) => {
+                    if (upErr) console.warn('Supabase student sync warning:', upErr.message);
+                  });
+              }
+            }
+
+            return { error: null };
+          } else if (error) {
+            return { error: error.message || 'Invalid or expired verification code.' };
+          }
+        } catch (err: any) {
+          console.warn('Supabase verifyOtp exception:', err);
+          return { error: err?.message || 'Verification service error.' };
+        }
+      }
+
+      // 2. Offline / local fallback check
+      const storedOtp = sessionStorage.getItem(`evx_otp_${cleanEmail}`) || '123456';
+      if (cleanToken === storedOtp || cleanToken === '123456') {
+        const localId = userRole === 'organization' ? `org_usr_${Date.now()}` : `st_usr_${Date.now()}`;
+        const resolvedName = name || savedProfile?.name || cleanEmail.split('@')[0];
+        const p: UserProfile = {
+          id: localId,
+          email: cleanEmail,
+          name: resolvedName,
+          role: userRole,
+          organization: metadata?.organization || savedProfile?.organization,
+          university: metadata?.university || savedProfile?.university || 'Verified Student',
+          program: metadata?.program || savedProfile?.program || 'Engineering',
+          avatarColor: userRole === 'organization' ? 'from-accent-600 to-accent-800' : 'from-brand-500 to-brand-700',
+        };
+
+        if (userRole === 'student') {
+          addCustomStudentRecord({
+            id: localId,
+            name: resolvedName,
+            email: cleanEmail,
+            program: p.program || 'Engineering',
+            year: '1st Year',
+            university: p.university || 'University',
+            bio: 'Verified student account.',
+            avatarColor: 'from-brand-500 to-brand-700',
+            interests: ['Software Engineering'],
+          }, [], {});
+        }
+
+        setProfile(p);
+        localStorage.setItem(LOCAL_USER_KEY, JSON.stringify(p));
+        return { error: null };
+      }
+
+      return { error: 'Incorrect verification code. Please check your Gmail inbox and try again.' };
+    },
+    []
+  );
+
   const signInWithGitHubUsername = useCallback(async (rawUsername: string) => {
     const cleaned = rawUsername
       .trim()
@@ -667,6 +899,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isDemoMode,
         signInWithEmail,
         signUpWithEmail,
+        sendEmailOtp,
+        verifyEmailOtp,
         signInWithOAuth,
         signInWithGitHubUsername,
         signInWithGoogleCredentials,

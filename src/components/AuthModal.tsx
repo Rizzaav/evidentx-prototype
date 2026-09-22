@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   X,
   Lock,
@@ -10,6 +10,7 @@ import {
   ArrowRight,
   Loader2,
   CheckCircle2,
+  ShieldCheck,
   Github,
   Check,
 } from 'lucide-react';
@@ -27,9 +28,22 @@ export function AuthModal({
   initialMode?: 'signin' | 'signup';
 }) {
   const { navigate } = useRouter();
-  const { signInWithEmail, signUpWithEmail, signInWithOAuth, signInWithGitHubUsername } = useAuth();
+  const {
+    signInWithEmail,
+    signUpWithEmail,
+    sendEmailOtp,
+    verifyEmailOtp,
+    signInWithOAuth,
+    signInWithGitHubUsername,
+  } = useAuth();
   const [mode, setMode] = useState<'signin' | 'signup'>(initialMode);
   const [role, setRole] = useState<UserRole>('student');
+  const [authMethod, setAuthMethod] = useState<'password' | 'otp'>('password');
+
+  // OTP Verification State
+  const [isOtpStep, setIsOtpStep] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [countdown, setCountdown] = useState(0);
 
   // Form fields
   const [email, setEmail] = useState('');
@@ -43,6 +57,14 @@ export function AuthModal({
   const [oauthLoading, setOauthLoading] = useState<'github' | 'google' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // Countdown timer for OTP resend
+  useEffect(() => {
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown((c) => c - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [countdown]);
 
   // GitHub Modal
   const [showGithubModal, setShowGithubModal] = useState(false);
@@ -69,8 +91,82 @@ export function AuthModal({
     } catch {}
   };
 
+  const handleSendOtp = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const cleanEmail = email.trim();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      setError('Please enter a valid email address');
+      return;
+    }
+    if (mode === 'signup' && !name.trim()) {
+      setError('Please enter your full name');
+      return;
+    }
+
+    setError(null);
+    setSuccessMessage(null);
+    setLoading(true);
+
+    const res = await sendEmailOtp(cleanEmail, role, name, {
+      university: role === 'student' ? university : undefined,
+      program: role === 'student' ? program : undefined,
+      organization: role === 'organization' ? organization : undefined,
+    });
+
+    setLoading(false);
+    if (res.error) {
+      setError(res.error);
+    } else {
+      setIsOtpStep(true);
+      setCountdown(60);
+      setSuccessMessage(`A 6-digit verification code was sent to ${cleanEmail}. Check your Gmail inbox!`);
+    }
+  };
+
+  const handleVerifyOtp = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const cleanOtp = otpCode.trim();
+    if (!cleanOtp || cleanOtp.length < 6) {
+      setError('Please enter the complete 6-digit verification code');
+      return;
+    }
+
+    setError(null);
+    setSuccessMessage(null);
+    setLoading(true);
+
+    const res = await verifyEmailOtp(email, cleanOtp, role, name, {
+      university: role === 'student' ? university : undefined,
+      program: role === 'student' ? program : undefined,
+      organization: role === 'organization' ? organization : undefined,
+    });
+
+    setLoading(false);
+    if (res.error) {
+      setError(res.error);
+    } else {
+      setSuccessMessage('Gmail verified successfully! Redirecting...');
+      setTimeout(() => {
+        onClose();
+        if (role === 'organization') {
+          navigate('/org/dashboard');
+        } else {
+          navigate('/student/dashboard');
+        }
+      }, 500);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (authMethod === 'otp') {
+      if (isOtpStep) {
+        await handleVerifyOtp(e);
+      } else {
+        await handleSendOtp(e);
+      }
+      return;
+    }
     setError(null);
     setSuccessMessage(null);
     setLoading(true);
@@ -194,6 +290,8 @@ export function AuthModal({
             type="button"
             onClick={() => {
               setMode('signin');
+              setIsOtpStep(false);
+              setOtpCode('');
               setError(null);
             }}
             className={`py-2 text-xs font-bold rounded-xl transition ${
@@ -208,6 +306,8 @@ export function AuthModal({
             type="button"
             onClick={() => {
               setMode('signup');
+              setIsOtpStep(false);
+              setOtpCode('');
               setError(null);
             }}
             className={`py-2 text-xs font-bold rounded-xl transition ${
@@ -236,143 +336,250 @@ export function AuthModal({
         </div>
 
         <div className="p-6 space-y-4">
-          {/* Auth Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Role Selection (Available for both Sign In & Sign Up) */}
-            <div>
-              <label className="text-xs font-bold uppercase tracking-wider text-ink-500 dark:text-[#8b949e] block mb-1.5">
-                {mode === 'signin' ? 'Signing in as:' : 'I am a:'}
-              </label>
-              <div className="grid grid-cols-2 gap-2">
+          {isOtpStep ? (
+            <div className="space-y-4">
+              <div className="text-center pb-1">
+                <div className="inline-flex h-12 w-12 rounded-2xl bg-brand-50 dark:bg-brand-950/70 border border-brand-200 dark:border-brand-800 items-center justify-center text-brand-600 dark:text-brand-400 mb-2.5 shadow-2xs">
+                  <ShieldCheck className="h-6 w-6" />
+                </div>
+                <h3 className="font-display text-base font-bold text-ink-900 dark:text-white">
+                  Verify Your Gmail
+                </h3>
+                <p className="mt-1 text-xs text-ink-500 dark:text-[#8b949e]">
+                  We sent a 6-digit code to <span className="font-semibold text-ink-900 dark:text-white">{email}</span>. Enter it below to prove email ownership.
+                </p>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-ink-700 dark:text-[#c9d1d9] block mb-1.5 text-center">
+                  6-Digit Verification Code
+                </label>
+                <input
+                  type="text"
+                  maxLength={6}
+                  autoFocus
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="••••••"
+                  className="input text-center font-mono text-2xl tracking-[0.4em] py-2.5 text-ink-900 dark:text-white font-bold"
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={handleVerifyOtp}
+                disabled={loading || otpCode.length < 6}
+                className="w-full btn-primary py-2.5 text-xs font-bold justify-center disabled:opacity-50"
+              >
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Confirm & Complete Verification'}
+              </button>
+
+              <div className="flex items-center justify-between text-xs pt-2 border-t border-ink-100 dark:border-[#30363d]">
                 <button
                   type="button"
-                  onClick={() => setRole('student')}
-                  className={`flex items-center justify-center gap-2 rounded-xl border p-2.5 text-xs font-bold transition ${
-                    role === 'student'
-                      ? 'border-brand-500 bg-brand-50 dark:bg-brand-950/70 text-brand-700 dark:text-brand-300 ring-2 ring-brand-200 dark:ring-brand-800 shadow-2xs'
-                      : 'border-ink-200 dark:border-[#30363d] text-ink-600 dark:text-[#c9d1d9] hover:bg-ink-50 dark:hover:bg-[#21262d]'
-                  }`}
+                  disabled={countdown > 0 || loading}
+                  onClick={() => handleSendOtp()}
+                  className="text-brand-600 dark:text-brand-400 hover:underline font-semibold disabled:opacity-50 disabled:no-underline"
                 >
-                  <GraduationCap className="h-4 w-4" />
-                  <span>Candidate</span>
+                  {countdown > 0 ? `Resend code in ${countdown}s` : 'Resend code'}
                 </button>
                 <button
                   type="button"
-                  onClick={() => setRole('organization')}
-                  className={`flex items-center justify-center gap-2 rounded-xl border p-2.5 text-xs font-bold transition ${
-                    role === 'organization'
-                      ? 'border-accent-500 bg-accent-50 dark:bg-accent-950/70 text-accent-700 dark:text-accent-300 ring-2 ring-accent-200 dark:ring-accent-800 shadow-2xs'
-                      : 'border-ink-200 dark:border-[#30363d] text-ink-600 dark:text-[#c9d1d9] hover:bg-ink-50 dark:hover:bg-[#21262d]'
-                  }`}
+                  onClick={() => {
+                    setIsOtpStep(false);
+                    setOtpCode('');
+                    setError(null);
+                  }}
+                  className="text-ink-500 dark:text-[#8b949e] hover:text-ink-900 dark:hover:text-white transition"
                 >
-                  <Building2 className="h-4 w-4" />
-                  <span>Recruiter / Org</span>
+                  ← Edit email / Back
                 </button>
               </div>
             </div>
+          ) : (
+            /* Auth Form */
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Method Switcher */}
+              <div className="grid grid-cols-2 p-1 bg-ink-100/70 dark:bg-[#0d1117] rounded-xl border border-transparent dark:border-[#30363d]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMethod('password');
+                    setError(null);
+                  }}
+                  className={`py-1.5 text-xs font-bold rounded-lg transition ${
+                    authMethod === 'password'
+                      ? 'bg-white dark:bg-[#21262d] text-ink-900 dark:text-white shadow-2xs'
+                      : 'text-ink-500 dark:text-[#8b949e] hover:text-ink-900 dark:hover:text-white'
+                  }`}
+                >
+                  Password
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMethod('otp');
+                    setError(null);
+                  }}
+                  className={`py-1.5 text-xs font-bold rounded-lg transition flex items-center justify-center gap-1.5 ${
+                    authMethod === 'otp'
+                      ? 'bg-white dark:bg-[#21262d] text-ink-900 dark:text-white shadow-2xs'
+                      : 'text-ink-500 dark:text-[#8b949e] hover:text-ink-900 dark:hover:text-white'
+                  }`}
+                >
+                  <Mail className="h-3.5 w-3.5 text-brand-500" />
+                  <span>Gmail OTP</span>
+                </button>
+              </div>
 
-            {mode === 'signup' && (
-              <>
-                {/* Full Name */}
+              {/* Role Selection (Available for both Sign In & Sign Up) */}
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-ink-500 dark:text-[#8b949e] block mb-1.5">
+                  {mode === 'signin' ? 'Signing in as:' : 'I am a:'}
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setRole('student')}
+                    className={`flex items-center justify-center gap-2 rounded-xl border p-2.5 text-xs font-bold transition ${
+                      role === 'student'
+                        ? 'border-brand-500 bg-brand-50 dark:bg-brand-950/70 text-brand-700 dark:text-brand-300 ring-2 ring-brand-200 dark:ring-brand-800 shadow-2xs'
+                        : 'border-ink-200 dark:border-[#30363d] text-ink-600 dark:text-[#c9d1d9] hover:bg-ink-50 dark:hover:bg-[#21262d]'
+                    }`}
+                  >
+                    <GraduationCap className="h-4 w-4" />
+                    <span>Candidate</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRole('organization')}
+                    className={`flex items-center justify-center gap-2 rounded-xl border p-2.5 text-xs font-bold transition ${
+                      role === 'organization'
+                        ? 'border-accent-500 bg-accent-50 dark:bg-accent-950/70 text-accent-700 dark:text-accent-300 ring-2 ring-accent-200 dark:ring-accent-800 shadow-2xs'
+                        : 'border-ink-200 dark:border-[#30363d] text-ink-600 dark:text-[#c9d1d9] hover:bg-ink-50 dark:hover:bg-[#21262d]'
+                    }`}
+                  >
+                    <Building2 className="h-4 w-4" />
+                    <span>Recruiter / Org</span>
+                  </button>
+                </div>
+              </div>
+
+              {mode === 'signup' && (
+                <>
+                  {/* Full Name */}
+                  <div>
+                    <label className="text-xs font-semibold text-ink-700 dark:text-[#c9d1d9] block mb-1">Full Name</label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
+                      <input
+                        type="text"
+                        required
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder={role === 'organization' ? 'e.g. Acme Talent Team' : 'e.g. Rishav Singh'}
+                        className="input pl-9 text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  {role === 'student' ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-xs font-semibold text-ink-700 dark:text-[#c9d1d9] block mb-1">University</label>
+                        <input
+                          type="text"
+                          value={university}
+                          onChange={(e) => setUniversity(e.target.value)}
+                          placeholder="e.g. ITER SOA"
+                          className="input text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold text-ink-700 dark:text-[#c9d1d9] block mb-1">Program</label>
+                        <input
+                          type="text"
+                          value={program}
+                          onChange={(e) => setProgram(e.target.value)}
+                          placeholder="e.g. B.Tech CSE"
+                          className="input text-xs"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="text-xs font-semibold text-ink-700 dark:text-[#c9d1d9] block mb-1">Company / Organization</label>
+                      <input
+                        type="text"
+                        value={organization}
+                        onChange={(e) => setOrganization(e.target.value)}
+                        placeholder="e.g. TechFlow Labs"
+                        className="input text-xs"
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Email */}
+              <div>
+                <label className="text-xs font-semibold text-ink-700 dark:text-[#c9d1d9] block mb-1">Email Address</label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => handleEmailChange(e.target.value)}
+                    placeholder={role === 'organization' ? 'recruiter@company.com' : 'name@gmail.com'}
+                    className="input pl-9 text-xs"
+                  />
+                </div>
+              </div>
+
+              {/* Password or OTP Info */}
+              {authMethod === 'password' ? (
                 <div>
-                  <label className="text-xs font-semibold text-ink-700 dark:text-[#c9d1d9] block mb-1">Full Name</label>
+                  <label className="text-xs font-semibold text-ink-700 dark:text-[#c9d1d9] block mb-1">Password</label>
                   <div className="relative">
-                    <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
+                    <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
                     <input
-                      type="text"
+                      type="password"
                       required
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder={role === 'organization' ? 'e.g. Acme Talent Team' : 'e.g. Rishav Singh'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
                       className="input pl-9 text-xs"
                     />
                   </div>
                 </div>
-
-                {role === 'student' ? (
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-xs font-semibold text-ink-700 dark:text-[#c9d1d9] block mb-1">University</label>
-                      <input
-                        type="text"
-                        value={university}
-                        onChange={(e) => setUniversity(e.target.value)}
-                        placeholder="e.g. ITER SOA"
-                        className="input text-xs"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold text-ink-700 dark:text-[#c9d1d9] block mb-1">Program</label>
-                      <input
-                        type="text"
-                        value={program}
-                        onChange={(e) => setProgram(e.target.value)}
-                        placeholder="e.g. B.Tech CSE"
-                        className="input text-xs"
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <div>
-                    <label className="text-xs font-semibold text-ink-700 dark:text-[#c9d1d9] block mb-1">Company / Organization</label>
-                    <input
-                      type="text"
-                      value={organization}
-                      onChange={(e) => setOrganization(e.target.value)}
-                      placeholder="e.g. TechFlow Labs"
-                      className="input text-xs"
-                    />
-                  </div>
-                )}
-              </>
-            )}
-
-            {/* Email */}
-            <div>
-              <label className="text-xs font-semibold text-ink-700 dark:text-[#c9d1d9] block mb-1">Email Address</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => handleEmailChange(e.target.value)}
-                  placeholder={role === 'organization' ? 'recruiter@company.com' : 'name@university.edu'}
-                  className="input pl-9 text-xs"
-                />
-              </div>
-            </div>
-
-            {/* Password */}
-            <div>
-              <label className="text-xs font-semibold text-ink-700 dark:text-[#c9d1d9] block mb-1">Password</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="input pl-9 text-xs"
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full btn-primary py-2.5 text-xs font-bold justify-center"
-            >
-              {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : mode === 'signin' ? (
-                'Sign In to Dashboard'
               ) : (
-                'Create Skill Passport Account'
+                <div className="rounded-xl bg-brand-50/70 dark:bg-brand-950/40 border border-brand-200 dark:border-brand-800/60 p-3 text-xs text-brand-900 dark:text-brand-300 flex items-start gap-2.5">
+                  <ShieldCheck className="h-4 w-4 text-brand-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-[11px] leading-relaxed">
+                    <span className="font-bold block text-xs">Verify email authenticity</span>
+                    A 6-digit OTP code will be sent to your Gmail to prove this email belongs to you.
+                  </div>
+                </div>
               )}
-            </button>
-          </form>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full btn-primary py-2.5 text-xs font-bold justify-center"
+              >
+                {loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : authMethod === 'otp' ? (
+                  'Send 6-Digit Code to Gmail'
+                ) : mode === 'signin' ? (
+                  'Sign In to Dashboard'
+                ) : (
+                  'Create Skill Passport Account'
+                )}
+              </button>
+            </form>
+          )}
 
           {/* Proper Sequence Divider */}
           <div className="relative flex items-center justify-center my-3">
