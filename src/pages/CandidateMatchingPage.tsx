@@ -62,6 +62,8 @@ import { useNotifications } from '@/lib/notifications';
 import { useToast } from '@/lib/toast';
 import { useDebounce } from '@/lib/useDebounce';
 import { rankStudentsForOpportunity, matchStudentToOpportunity } from '@/lib/matchingEngine';
+import { PipelineStepper, PipelineLevelBadge } from '@/components/PipelineStepper';
+import { PIPELINE_STAGES, getPipelineLevelNumber } from '@/lib/pipelineLevels';
 import type { MatchResult, ApplicationStatus, Opportunity, Student } from '@/types';
 
 export function CandidateMatchingPage({ opportunityId }: { opportunityId?: string }) {
@@ -787,6 +789,19 @@ export function CandidateMatchingPage({ opportunityId }: { opportunityId?: strin
               All Matched ({ranked.length})
             </button>
             <button
+              onClick={() => setStatusStage('Applied')}
+              className={`rounded-xl px-3 py-1.5 text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap ${
+                statusStage === 'Applied'
+                  ? 'bg-indigo-600 text-white shadow-soft'
+                  : 'bg-white dark:bg-[#161b22] border border-ink-200 dark:border-[#30363d] text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40'
+              }`}
+            >
+              <span>📋 Level 1: Applied / Review</span>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${statusStage === 'Applied' ? 'bg-white/25 text-white' : 'bg-indigo-100 dark:bg-indigo-950/70 text-indigo-900 dark:text-indigo-300'}`}>
+                {stageBuckets.applied.length}
+              </span>
+            </button>
+            <button
               onClick={() => setStatusStage('Shortlisted')}
               className={`rounded-xl px-3 py-1.5 text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap ${
                 statusStage === 'Shortlisted'
@@ -794,7 +809,7 @@ export function CandidateMatchingPage({ opportunityId }: { opportunityId?: strin
                   : 'bg-white dark:bg-[#161b22] border border-ink-200 dark:border-[#30363d] text-brand-700 dark:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-950/40'
               }`}
             >
-              <span>⭐ Shortlisted</span>
+              <span>⭐ Level 2: Shortlisted</span>
               <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${statusStage === 'Shortlisted' ? 'bg-white/25 text-white' : 'bg-brand-100 dark:bg-brand-950/70 text-brand-800 dark:text-brand-300'}`}>
                 {stageBuckets.shortlisted.length}
               </span>
@@ -807,7 +822,7 @@ export function CandidateMatchingPage({ opportunityId }: { opportunityId?: strin
                   : 'bg-white dark:bg-[#161b22] border border-ink-200 dark:border-[#30363d] text-amber-800 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40'
               }`}
             >
-              <span>🎙️ Interviewing</span>
+              <span>🎙️ Level 3: Interviewing</span>
               <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${statusStage === 'Interviewing' ? 'bg-white/25 text-white' : 'bg-amber-100 dark:bg-amber-950/70 text-amber-900 dark:text-amber-300'}`}>
                 {stageBuckets.interviewing.length}
               </span>
@@ -820,22 +835,9 @@ export function CandidateMatchingPage({ opportunityId }: { opportunityId?: strin
                   : 'bg-white dark:bg-[#161b22] border border-ink-200 dark:border-[#30363d] text-emerald-800 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40'
               }`}
             >
-              <span>🏆 Offered</span>
+              <span>🏆 Level 4: Offered</span>
               <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${statusStage === 'Offered' ? 'bg-white/25 text-white' : 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-900 dark:text-emerald-300'}`}>
                 {stageBuckets.offered.length}
-              </span>
-            </button>
-            <button
-              onClick={() => setStatusStage('Applied')}
-              className={`rounded-xl px-3 py-1.5 text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap ${
-                statusStage === 'Applied'
-                  ? 'bg-accent-600 text-white shadow-soft'
-                  : 'bg-white dark:bg-[#161b22] border border-ink-200 dark:border-[#30363d] text-accent-800 dark:text-accent-400 hover:bg-accent-50 dark:hover:bg-accent-950/40'
-              }`}
-            >
-              <span>📋 Applied / In Review</span>
-              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${statusStage === 'Applied' ? 'bg-white/25 text-white' : 'bg-accent-100 dark:bg-accent-950/70 text-accent-900 dark:text-accent-300'}`}>
-                {stageBuckets.applied.length}
               </span>
             </button>
             <button
@@ -846,7 +848,7 @@ export function CandidateMatchingPage({ opportunityId }: { opportunityId?: strin
                   : 'bg-white dark:bg-[#161b22] border border-ink-200 dark:border-[#30363d] text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40'
               }`}
             >
-              <span>❌ Rejected</span>
+              <span>❌ Disqualified</span>
               <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${statusStage === 'Rejected' ? 'bg-white/25 text-white' : 'bg-rose-100 dark:bg-rose-950/70 text-rose-800 dark:text-rose-300'}`}>
                 {stageBuckets.rejected.length}
               </span>
@@ -914,132 +916,31 @@ export function CandidateMatchingPage({ opportunityId }: { opportunityId?: strin
       {/* VIEW 1: PIPELINE STAGES VIEW */}
       {viewMode === 'stages' ? (
         <div className="mt-6 space-y-6">
-          {/* ⭐ Shortlisted Section */}
-          <div className="rounded-2xl border-2 border-brand-200 bg-brand-50/20 p-5 shadow-soft">
+          {/* 📋 Level 1: Applied & Under Review */}
+          <div className="rounded-2xl border-2 border-indigo-200 dark:border-indigo-900 bg-indigo-50/20 dark:bg-indigo-950/20 p-5 shadow-soft">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-600 text-white font-bold text-xs shadow-2xs">
-                  ⭐
-                </span>
-                <h3 className="font-display text-base font-bold text-brand-950">
-                  Shortlisted Candidates ({stageBuckets.shortlisted.length})
-                </h3>
-              </div>
-              <span className="text-xs font-semibold text-brand-700 bg-brand-100/70 px-2.5 py-0.5 rounded-full border border-brand-200">
-                Ready for Technical Evaluation
-              </span>
-            </div>
-
-            {stageBuckets.shortlisted.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-brand-200 bg-white p-6 text-center text-xs text-brand-700">
-                No candidates shortlisted yet. Click <strong className="font-semibold">"Shortlist"</strong> on any candidate below to move them to this area!
-              </div>
-            ) : (
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {stageBuckets.shortlisted.map((r) => (
-                  <StageCandidateCard
-                    key={r.studentId}
-                    result={r}
-                    oppId={opp.id}
-                    stage="Shortlisted"
-                    onUpdateStatus={(status) => handleSingleStatusChange(r.studentId, status)}
-                    onDetails={() => navigate(`/org/candidates/${opp.id}/${r.studentId}`)}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* 🎙️ Interviewing Section */}
-          <div className="rounded-2xl border-2 border-amber-200 bg-amber-50/20 p-5 shadow-soft">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-600 text-white font-bold text-xs shadow-2xs">
-                  🎙️
-                </span>
-                <h3 className="font-display text-base font-bold text-amber-950">
-                  Interview Stage ({stageBuckets.interviewing.length})
-                </h3>
-              </div>
-              <span className="text-xs font-semibold text-amber-800 bg-amber-100/70 px-2.5 py-0.5 rounded-full border border-amber-200">
-                Interview Rounds Active
-              </span>
-            </div>
-
-            {stageBuckets.interviewing.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-amber-200 bg-white p-6 text-center text-xs text-amber-700">
-                No candidates in interview stage.
-              </div>
-            ) : (
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {stageBuckets.interviewing.map((r) => (
-                  <StageCandidateCard
-                    key={r.studentId}
-                    result={r}
-                    oppId={opp.id}
-                    stage="Interviewing"
-                    onUpdateStatus={(status) => handleSingleStatusChange(r.studentId, status)}
-                    onDetails={() => navigate(`/org/candidates/${opp.id}/${r.studentId}`)}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* 🏆 Offered Section */}
-          <div className="rounded-2xl border-2 border-emerald-200 bg-emerald-50/20 p-5 shadow-soft">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-600 text-white font-bold text-xs shadow-2xs">
-                  🏆
-                </span>
-                <h3 className="font-display text-base font-bold text-emerald-950">
-                  Offered / Hired ({stageBuckets.offered.length})
-                </h3>
-              </div>
-              <span className="text-xs font-semibold text-emerald-800 bg-emerald-100/70 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                Official Offers Extended
-              </span>
-            </div>
-
-            {stageBuckets.offered.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-emerald-200 bg-white p-6 text-center text-xs text-emerald-700">
-                No offers extended yet.
-              </div>
-            ) : (
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {stageBuckets.offered.map((r) => (
-                  <StageCandidateCard
-                    key={r.studentId}
-                    result={r}
-                    oppId={opp.id}
-                    stage="Offered"
-                    onUpdateStatus={(status) => handleSingleStatusChange(r.studentId, status)}
-                    onDetails={() => navigate(`/org/candidates/${opp.id}/${r.studentId}`)}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* 📋 Applied & Under Review */}
-          <div className="rounded-2xl border border-ink-200 bg-white p-5 shadow-soft">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-ink-800 text-white font-bold text-xs shadow-2xs">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-600 text-white font-bold text-xs shadow-2xs">
                   📋
                 </span>
-                <h3 className="font-display text-base font-bold text-ink-900">
-                  Applied / Under Review ({stageBuckets.applied.length})
-                </h3>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-950 px-2 py-0.5 rounded-md border border-indigo-200 dark:border-indigo-800">
+                      Level 1
+                    </span>
+                    <h3 className="font-display text-base font-bold text-ink-900 dark:text-white">
+                      Applied / Under Review ({stageBuckets.applied.length})
+                    </h3>
+                  </div>
+                </div>
               </div>
-              <span className="text-xs font-semibold text-ink-500 bg-ink-100 px-2.5 py-0.5 rounded-full">
-                New Submissions
+              <span className="text-xs font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-100/70 dark:bg-indigo-950/50 px-2.5 py-0.5 rounded-full border border-indigo-200 dark:border-indigo-800">
+                Initial Match & Screening
               </span>
             </div>
 
             {stageBuckets.applied.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-ink-200 bg-ink-50/50 p-6 text-center text-xs text-ink-500">
+              <div className="rounded-xl border border-dashed border-indigo-200 dark:border-indigo-800 bg-white dark:bg-[#161b22] p-6 text-center text-xs text-ink-500">
                 No new applications pending review.
               </div>
             ) : (
@@ -1058,16 +959,145 @@ export function CandidateMatchingPage({ opportunityId }: { opportunityId?: strin
             )}
           </div>
 
-          {/* ❌ Rejected / Archived */}
+          {/* ⭐ Level 2: Shortlisted Section */}
+          <div className="rounded-2xl border-2 border-brand-200 dark:border-brand-900 bg-brand-50/20 dark:bg-brand-950/20 p-5 shadow-soft">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-600 text-white font-bold text-xs shadow-2xs">
+                  ⭐
+                </span>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-brand-600 dark:text-brand-400 bg-brand-100 dark:bg-brand-950 px-2 py-0.5 rounded-md border border-brand-200 dark:border-brand-800">
+                      Level 2
+                    </span>
+                    <h3 className="font-display text-base font-bold text-brand-950 dark:text-white">
+                      Shortlisted Candidates ({stageBuckets.shortlisted.length})
+                    </h3>
+                  </div>
+                </div>
+              </div>
+              <span className="text-xs font-semibold text-brand-700 dark:text-brand-300 bg-brand-100/70 dark:bg-brand-950/50 px-2.5 py-0.5 rounded-full border border-brand-200 dark:border-brand-800">
+                Ready for Technical Evaluation
+              </span>
+            </div>
+
+            {stageBuckets.shortlisted.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-brand-200 dark:border-brand-800 bg-white dark:bg-[#161b22] p-6 text-center text-xs text-brand-700 dark:text-brand-400">
+                No candidates shortlisted yet. Click <strong className="font-semibold">"Advance to Level 2"</strong> on any candidate to move them to this area!
+              </div>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {stageBuckets.shortlisted.map((r) => (
+                  <StageCandidateCard
+                    key={r.studentId}
+                    result={r}
+                    oppId={opp.id}
+                    stage="Shortlisted"
+                    onUpdateStatus={(status) => handleSingleStatusChange(r.studentId, status)}
+                    onDetails={() => navigate(`/org/candidates/${opp.id}/${r.studentId}`)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 🎙️ Level 3: Interviewing Section */}
+          <div className="rounded-2xl border-2 border-amber-200 dark:border-amber-900 bg-amber-50/20 dark:bg-amber-950/20 p-5 shadow-soft">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-600 text-white font-bold text-xs shadow-2xs">
+                  🎙️
+                </span>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-950 px-2 py-0.5 rounded-md border border-amber-200 dark:border-amber-800">
+                      Level 3
+                    </span>
+                    <h3 className="font-display text-base font-bold text-amber-950 dark:text-white">
+                      Interview Stage ({stageBuckets.interviewing.length})
+                    </h3>
+                  </div>
+                </div>
+              </div>
+              <span className="text-xs font-semibold text-amber-800 dark:text-amber-300 bg-amber-100/70 dark:bg-amber-950/50 px-2.5 py-0.5 rounded-full border border-amber-200 dark:border-amber-800">
+                Interview Rounds Active
+              </span>
+            </div>
+
+            {stageBuckets.interviewing.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-amber-200 dark:border-amber-800 bg-white dark:bg-[#161b22] p-6 text-center text-xs text-amber-700 dark:text-amber-400">
+                No candidates in interview stage.
+              </div>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {stageBuckets.interviewing.map((r) => (
+                  <StageCandidateCard
+                    key={r.studentId}
+                    result={r}
+                    oppId={opp.id}
+                    stage="Interviewing"
+                    onUpdateStatus={(status) => handleSingleStatusChange(r.studentId, status)}
+                    onDetails={() => navigate(`/org/candidates/${opp.id}/${r.studentId}`)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 🏆 Level 4: Offered Section */}
+          <div className="rounded-2xl border-2 border-emerald-200 dark:border-emerald-900 bg-emerald-50/20 dark:bg-emerald-950/20 p-5 shadow-soft">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-600 text-white font-bold text-xs shadow-2xs">
+                  🏆
+                </span>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800">
+                      Level 4
+                    </span>
+                    <h3 className="font-display text-base font-bold text-emerald-950 dark:text-white">
+                      Offered / Hired ({stageBuckets.offered.length})
+                    </h3>
+                  </div>
+                </div>
+              </div>
+              <span className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 bg-emerald-100/70 dark:bg-emerald-950/50 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                Official Offers Extended
+              </span>
+            </div>
+
+            {stageBuckets.offered.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-emerald-200 dark:border-emerald-800 bg-white dark:bg-[#161b22] p-6 text-center text-xs text-emerald-700 dark:text-emerald-400">
+                No offers extended yet.
+              </div>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {stageBuckets.offered.map((r) => (
+                  <StageCandidateCard
+                    key={r.studentId}
+                    result={r}
+                    oppId={opp.id}
+                    stage="Offered"
+                    onUpdateStatus={(status) => handleSingleStatusChange(r.studentId, status)}
+                    onDetails={() => navigate(`/org/candidates/${opp.id}/${r.studentId}`)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* ❌ Rejected / Disqualified */}
           {stageBuckets.rejected.length > 0 && (
-            <div className="rounded-2xl border border-rose-200 bg-rose-50/15 p-5 shadow-soft">
+            <div className="rounded-2xl border border-rose-200 dark:border-rose-900 bg-rose-50/15 dark:bg-rose-950/20 p-5 shadow-soft">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-600 text-white font-bold text-xs shadow-2xs">
                     ❌
                   </span>
-                  <h3 className="font-display text-base font-bold text-rose-950">
-                    Archived / Rejected ({stageBuckets.rejected.length})
+                  <h3 className="font-display text-base font-bold text-rose-950 dark:text-white">
+                    Archived / Disqualified ({stageBuckets.rejected.length})
                   </h3>
                 </div>
               </div>
@@ -1154,30 +1184,46 @@ export function CandidateMatchingPage({ opportunityId }: { opportunityId?: strin
 
             <div className="h-4 w-px bg-white/20 hidden sm:block" />
 
-            <button
-              onClick={() => handleBulkStatusChange('Shortlisted')}
-              className="rounded-lg bg-accent-600 hover:bg-accent-700 px-2.5 py-1.5 text-xs font-semibold transition text-white"
-            >
-              Shortlist
-            </button>
-            <button
-              onClick={() => handleBulkStatusChange('Interviewing')}
-              className="rounded-lg bg-brand-600 hover:bg-brand-700 px-2.5 py-1.5 text-xs font-semibold transition text-white"
-            >
-              Interview
-            </button>
-            <button
-              onClick={() => handleBulkStatusChange('Offered')}
-              className="rounded-lg bg-emerald-600 hover:bg-emerald-700 px-2.5 py-1.5 text-xs font-semibold transition text-white"
-            >
-              Offer
-            </button>
-            <button
-              onClick={() => handleBulkStatusChange('Rejected')}
-              className="rounded-lg bg-rose-600 hover:bg-rose-700 px-2.5 py-1.5 text-xs font-semibold transition text-white"
-            >
-              Reject
-            </button>
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-white/60 px-1 hidden md:inline">
+                Set Level:
+              </span>
+              <button
+                onClick={() => handleBulkStatusChange('Applied')}
+                className="rounded-lg bg-indigo-600/80 hover:bg-indigo-600 px-2.5 py-1.5 text-xs font-bold transition text-white"
+                title="Level 1: Applied / Review"
+              >
+                L1 Review
+              </button>
+              <button
+                onClick={() => handleBulkStatusChange('Shortlisted')}
+                className="rounded-lg bg-brand-600 hover:bg-brand-500 px-2.5 py-1.5 text-xs font-bold transition text-white"
+                title="Level 2: Shortlisted"
+              >
+                L2 Shortlist
+              </button>
+              <button
+                onClick={() => handleBulkStatusChange('Interviewing')}
+                className="rounded-lg bg-amber-600 hover:bg-amber-500 px-2.5 py-1.5 text-xs font-bold transition text-white"
+                title="Level 3: Interviewing"
+              >
+                L3 Interview
+              </button>
+              <button
+                onClick={() => handleBulkStatusChange('Offered')}
+                className="rounded-lg bg-emerald-600 hover:bg-emerald-500 px-2.5 py-1.5 text-xs font-bold transition text-white"
+                title="Level 4: Offered"
+              >
+                L4 Offer
+              </button>
+              <button
+                onClick={() => handleBulkStatusChange('Rejected')}
+                className="rounded-lg bg-rose-600 hover:bg-rose-500 px-2.5 py-1.5 text-xs font-bold transition text-white"
+                title="Disqualify / Reject"
+              >
+                Reject
+              </button>
+            </div>
 
             <button
               onClick={clearSelection}
@@ -1287,11 +1333,9 @@ function CandidateRow({
         </span>
         <Avatar name={student.name} color={student.avatarColor} size="md" />
         <div className="min-w-0 flex-1 cursor-pointer" onClick={() => setExpanded((e) => !e)}>
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-ink-900 truncate">{student.name}</span>
-            {application && (
-              <Chip color={statusColors[application.status] ?? 'brand'}>{application.status}</Chip>
-            )}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-semibold text-ink-900 dark:text-white truncate">{student.name}</span>
+            <PipelineLevelBadge status={application?.status} />
           </div>
           <div className="text-xs text-ink-500 truncate">
             {student.program} · {student.university}
@@ -1324,55 +1368,14 @@ function CandidateRow({
       </div>
 
       {expanded && (
-        <div className="border-t border-ink-100 p-4 bg-ink-50/30 animate-fade-in">
-          <p className="text-sm text-ink-700">{result.explanation}</p>
+        <div className="border-t border-ink-100 dark:border-[#30363d] p-4 bg-ink-50/30 dark:bg-[#161b22]/40 animate-fade-in space-y-4">
+          <p className="text-sm text-ink-700 dark:text-[#c9d1d9]">{result.explanation}</p>
 
-          {/* Quick status recruiter controls */}
-          <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl bg-white dark:bg-[#161b22] p-3 border border-ink-100 dark:border-[#30363d]">
-            <span className="text-xs font-bold uppercase tracking-wide text-ink-500 dark:text-[#8b949e]">
-              Recruiter action:
-            </span>
-            <button
-              onClick={() => onUpdateStatus('Shortlisted')}
-              className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
-                application?.status === 'Shortlisted'
-                  ? 'bg-accent-600 text-white'
-                  : 'bg-accent-50 text-accent-700 hover:bg-accent-100'
-              }`}
-            >
-              Shortlist
-            </button>
-            <button
-              onClick={() => onUpdateStatus('Interviewing')}
-              className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
-                application?.status === 'Interviewing'
-                  ? 'bg-brand-600 text-white'
-                  : 'bg-brand-50 text-brand-700 hover:bg-brand-100'
-              }`}
-            >
-              Interview
-            </button>
-            <button
-              onClick={() => onUpdateStatus('Offered')}
-              className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
-                application?.status === 'Offered'
-                  ? 'bg-emerald-600 text-white'
-                  : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-              }`}
-            >
-              Offer
-            </button>
-            <button
-              onClick={() => onUpdateStatus('Rejected')}
-              className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
-                application?.status === 'Rejected'
-                  ? 'bg-rose-600 text-white'
-                  : 'bg-rose-50 text-rose-700 hover:bg-rose-100'
-              }`}
-            >
-              Reject
-            </button>
-          </div>
+          {/* Hiring Pipeline Progression Levels */}
+          <PipelineStepper
+            currentStatus={application?.status}
+            onUpdateStatus={onUpdateStatus}
+          />
 
           <div className="mt-3 grid gap-3 sm:grid-cols-3">
             <div>
@@ -1513,30 +1516,45 @@ function CandidateComparisonModal({
                       {match.matchScore}% Match
                     </div>
                   </div>
-                  <div className="mt-3 flex items-center justify-center gap-1">
+                  <div className="mt-2 flex justify-center">
+                    <PipelineLevelBadge status={app?.status} />
+                  </div>
+                  <div className="mt-3 flex items-center justify-center gap-1 flex-wrap">
+                    <button
+                      onClick={() => onUpdateStatus(id, 'Applied')}
+                      className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold transition ${
+                        !app?.status || app?.status === 'Applied' ? 'bg-indigo-600 text-white' : 'bg-ink-100 dark:bg-[#21262d] text-ink-600 dark:text-[#8b949e] hover:bg-ink-200'
+                      }`}
+                      title="Level 1 Review"
+                    >
+                      L1
+                    </button>
                     <button
                       onClick={() => onUpdateStatus(id, 'Shortlisted')}
-                      className={`rounded-md px-2 py-0.5 text-[10px] font-semibold transition ${
-                        app?.status === 'Shortlisted' ? 'bg-accent-600 text-white' : 'bg-accent-50 text-accent-700 hover:bg-accent-100'
+                      className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold transition ${
+                        app?.status === 'Shortlisted' ? 'bg-brand-600 text-white' : 'bg-brand-50 dark:bg-brand-950/40 text-brand-700 dark:text-brand-300 hover:bg-brand-100'
                       }`}
+                      title="Level 2 Shortlist"
                     >
-                      Shortlist
+                      L2 Shortlist
                     </button>
                     <button
                       onClick={() => onUpdateStatus(id, 'Interviewing')}
-                      className={`rounded-md px-2 py-0.5 text-[10px] font-semibold transition ${
-                        app?.status === 'Interviewing' ? 'bg-brand-600 text-white' : 'bg-brand-50 text-brand-700 hover:bg-brand-100'
+                      className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold transition ${
+                        app?.status === 'Interviewing' ? 'bg-amber-600 text-white' : 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 hover:bg-amber-100'
                       }`}
+                      title="Level 3 Interview"
                     >
-                      Interview
+                      L3 Interview
                     </button>
                     <button
                       onClick={() => onUpdateStatus(id, 'Offered')}
-                      className={`rounded-md px-2 py-0.5 text-[10px] font-semibold transition ${
-                        app?.status === 'Offered' ? 'bg-emerald-600 text-white' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                      className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold transition ${
+                        app?.status === 'Offered' ? 'bg-emerald-600 text-white' : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100'
                       }`}
+                      title="Level 4 Offer"
                     >
-                      Offer
+                      L4 Offer
                     </button>
                   </div>
                 </div>
@@ -1682,13 +1700,17 @@ function StageCandidateCard({
           <div className="flex items-center gap-2.5 min-w-0">
             <Avatar name={student.name} color={student.avatarColor} photoUrl={student.photoUrl} size="md" />
             <div className="min-w-0">
-              <div className="font-bold text-sm text-ink-900 truncate">{student.name}</div>
+              <div className="font-bold text-sm text-ink-900 dark:text-white truncate">{student.name}</div>
               <div className="text-[11px] text-ink-500 truncate">{student.program}</div>
             </div>
           </div>
           <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-brand-50 border border-brand-200 text-brand-700 font-extrabold text-xs shadow-2xs">
             {result.matchScore}%
           </div>
+        </div>
+
+        <div className="mt-2.5">
+          <PipelineLevelBadge status={stage} />
         </div>
 
         <div className="mt-3 flex flex-wrap gap-1">
@@ -1703,7 +1725,7 @@ function StageCandidateCard({
         </div>
       </div>
 
-      <div className="mt-4 pt-3 border-t border-ink-100">
+      <div className="mt-4 pt-3 border-t border-ink-100 dark:border-[#30363d]">
         <div className="flex items-center justify-between gap-1.5 flex-wrap">
           <button
             onClick={onDetails}
@@ -1712,22 +1734,22 @@ function StageCandidateCard({
             Inspect Proof →
           </button>
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5 flex-wrap">
             {stage === 'Applied' && (
               <>
                 <button
                   onClick={() => onUpdateStatus('Shortlisted')}
-                  className="rounded-lg bg-brand-50 border border-brand-200 px-2 py-1 text-[11px] font-bold text-brand-700 hover:bg-brand-100 transition shadow-2xs"
-                  title="Shortlist candidate"
+                  className="rounded-lg bg-brand-600 hover:bg-brand-700 px-2.5 py-1 text-[11px] font-bold text-white transition shadow-2xs"
+                  title="Advance to Level 2 (Shortlist)"
                 >
-                  ⭐ Shortlist
+                  Advance to L2 (Shortlist) →
                 </button>
                 <button
                   onClick={() => onUpdateStatus('Rejected')}
                   className="rounded-lg bg-rose-50 border border-rose-200 px-2 py-1 text-[11px] font-bold text-rose-700 hover:bg-rose-100 transition"
-                  title="Reject / Archive"
+                  title="Reject candidate"
                 >
-                  ❌
+                  Reject
                 </button>
               </>
             )}
@@ -1736,17 +1758,17 @@ function StageCandidateCard({
               <>
                 <button
                   onClick={() => onUpdateStatus('Interviewing')}
-                  className="rounded-lg bg-amber-500 hover:bg-amber-600 px-2 py-1 text-[11px] font-bold text-white transition shadow-2xs"
-                  title="Invite to interview"
+                  className="rounded-lg bg-amber-500 hover:bg-amber-600 px-2.5 py-1 text-[11px] font-bold text-white transition shadow-2xs"
+                  title="Advance to Level 3 (Interview)"
                 >
-                  🎙️ Interview
+                  Advance to L3 (Interview) →
                 </button>
                 <button
                   onClick={() => onUpdateStatus('Offered')}
                   className="rounded-lg bg-emerald-600 hover:bg-emerald-700 px-2 py-1 text-[11px] font-bold text-white transition shadow-2xs"
-                  title="Extend offer"
+                  title="Direct L4 Offer"
                 >
-                  🏆 Offer
+                  L4 Offer
                 </button>
                 <button
                   onClick={() => onUpdateStatus('Rejected')}
@@ -1762,15 +1784,15 @@ function StageCandidateCard({
               <>
                 <button
                   onClick={() => onUpdateStatus('Offered')}
-                  className="rounded-lg bg-emerald-600 hover:bg-emerald-700 px-2 py-1 text-[11px] font-bold text-white transition shadow-2xs"
-                  title="Pass interview and extend offer"
+                  className="rounded-lg bg-emerald-600 hover:bg-emerald-700 px-2.5 py-1 text-[11px] font-bold text-white transition shadow-2xs"
+                  title="Pass interview and advance to Level 4 (Extend Offer)"
                 >
-                  🏆 Extend Offer
+                  Advance to L4 (Extend Offer) →
                 </button>
                 <button
                   onClick={() => onUpdateStatus('Rejected')}
                   className="rounded-lg bg-rose-50 border border-rose-200 px-2 py-1 text-[11px] font-bold text-rose-700 hover:bg-rose-100 transition"
-                  title="Conclude"
+                  title="Reject"
                 >
                   Reject
                 </button>
@@ -1778,18 +1800,28 @@ function StageCandidateCard({
             )}
 
             {stage === 'Offered' && (
-              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                <CheckCircle2 className="h-3 w-3" /> Offer Active
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200">
+                <CheckCircle2 className="h-3.5 w-3.5" /> Level 4 Offer Extended
               </span>
             )}
 
             {stage === 'Rejected' && (
-              <button
-                onClick={() => onUpdateStatus('Shortlisted')}
-                className="rounded-lg bg-ink-100 hover:bg-ink-200 px-2 py-1 text-[11px] font-bold text-ink-700 transition"
-              >
-                ↩️ Restore
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => onUpdateStatus('Applied')}
+                  className="rounded-lg bg-ink-100 hover:bg-ink-200 px-2 py-1 text-[11px] font-bold text-ink-700 transition"
+                  title="Restore to Level 1 (Review)"
+                >
+                  ↩️ L1 Review
+                </button>
+                <button
+                  onClick={() => onUpdateStatus('Shortlisted')}
+                  className="rounded-lg bg-brand-50 hover:bg-brand-100 border border-brand-200 px-2 py-1 text-[11px] font-bold text-brand-700 transition"
+                  title="Restore to Level 2 (Shortlist)"
+                >
+                  ⭐ L2 Shortlist
+                </button>
+              </div>
             )}
           </div>
         </div>

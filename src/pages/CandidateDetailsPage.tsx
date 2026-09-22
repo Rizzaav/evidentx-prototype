@@ -41,6 +41,7 @@ import { useApplications } from '@/lib/applications';
 import { useNotifications } from '@/lib/notifications';
 import { useToast } from '@/lib/toast';
 import { CandidateAiDossier } from '@/components/CandidateAiDossier';
+import { PipelineStepper } from '@/components/PipelineStepper';
 import type { ApplicationStatus } from '@/types';
 
 export function CandidateDetailsPage({ opportunityId, studentId }: { opportunityId: string; studentId: string }) {
@@ -307,62 +308,21 @@ ${opp.organization}`,
         {/* Side */}
         <div className="space-y-6">
           {/* Hiring Decision Card */}
-          <Card className="p-5 border-brand-200 shadow-lift">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <UserCheck className="h-5 w-5 text-brand-600" />
-                <h3 className="font-semibold text-ink-900">Application status</h3>
-              </div>
-              <Chip color={app?.status === 'Offered' ? 'emerald' : app?.status === 'Shortlisted' ? 'accent' : 'brand'}>
-                {app?.status ?? 'Not Applied'}
-              </Chip>
-            </div>
-            <p className="mt-2 text-xs text-ink-500">
-              Update candidate progression in your evaluation pipeline:
-            </p>
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <button
-                onClick={() => updateStatus(student.id, opp.id, 'Shortlisted')}
-                className={`rounded-xl py-2 px-3 text-xs font-semibold transition ${
-                  app?.status === 'Shortlisted' ? 'bg-accent-600 text-white' : 'bg-accent-50 text-accent-700 hover:bg-accent-100'
-                }`}
-              >
-                Shortlist
-              </button>
-              <button
-                onClick={() => updateStatus(student.id, opp.id, 'Interviewing')}
-                className={`rounded-xl py-2 px-3 text-xs font-semibold transition ${
-                  app?.status === 'Interviewing' ? 'bg-brand-600 text-white' : 'bg-brand-50 text-brand-700 hover:bg-brand-100'
-                }`}
-              >
-                Interview
-              </button>
-              <button
-                onClick={() => updateStatus(student.id, opp.id, 'Offered')}
-                className={`rounded-xl py-2 px-3 text-xs font-semibold transition ${
-                  app?.status === 'Offered' ? 'bg-emerald-600 text-white' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                }`}
-              >
-                Make Offer
-              </button>
-              <button
-                onClick={() => updateStatus(student.id, opp.id, 'Rejected')}
-                className={`rounded-xl py-2 px-3 text-xs font-semibold transition ${
-                  app?.status === 'Rejected' ? 'bg-rose-600 text-white' : 'bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/50'
-                }`}
-              >
-                Reject
-              </button>
-            </div>
+          {/* Hiring Pipeline Progression Decision Card */}
+          <div className="space-y-3">
+            <PipelineStepper
+              currentStatus={app?.status}
+              onUpdateStatus={(status) => updateStatus(student.id, opp.id, status)}
+            />
 
             <button
               onClick={() => setShowEmailModal(true)}
-              className="mt-3.5 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-ink-950 hover:bg-ink-800 dark:bg-ink-100 dark:hover:bg-white text-white dark:text-ink-950 py-2.5 px-3 text-xs font-bold transition shadow-sm active:scale-98"
+              className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-ink-950 hover:bg-ink-800 dark:bg-ink-100 dark:hover:bg-white text-white dark:text-ink-950 py-2.5 px-3 text-xs font-bold transition shadow-sm active:scale-98"
             >
               <Mail className="h-4 w-4 text-brand-400 dark:text-brand-600" />
               Draft Outreach / Offer Email
             </button>
-          </Card>
+          </div>
 
           {/* Recruiter Evaluation Scorecard */}
           <Card className="p-5 border-ink-200 dark:border-ink-800">

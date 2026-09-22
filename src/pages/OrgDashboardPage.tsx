@@ -50,6 +50,17 @@ export function OrgDashboardPage() {
     [applications]
   );
 
+  const pipelineFunnel = useMemo(() => {
+    let l1 = 0, l2 = 0, l3 = 0, l4 = 0;
+    for (const a of applications) {
+      if (a.status === 'Applied' || a.status === 'Reviewing') l1++;
+      else if (a.status === 'Shortlisted') l2++;
+      else if (a.status === 'Interviewing') l3++;
+      else if (a.status === 'Offered') l4++;
+    }
+    return { l1, l2, l3, l4 };
+  }, [applications]);
+
   return (
     <div>
       <PageHeader
@@ -91,6 +102,99 @@ export function OrgDashboardPage() {
         <StatCard label="Total applications" value={applications.length} icon={<Users className="h-4 w-4 text-brand-600" />} color="brand" />
         <StatCard label="In Pipeline" value={shortlistedCount} icon={<UserCheck className="h-4 w-4 text-accent-700" />} color="emerald" />
         <StatCard label="Avg match score" value={ranked.length > 0 ? `${Math.round(ranked.reduce((a, b) => a + b.matchScore, 0) / ranked.length)}%` : '0%'} icon={<TrendingUp className="h-4 w-4 text-amber-600" />} color="amber" />
+      </div>
+
+      {/* Pipeline Progression Levels Funnel */}
+      <div className="mt-6 rounded-2xl border border-ink-200/80 dark:border-[#30363d] bg-white dark:bg-[#161b22] p-5 shadow-soft">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <div className="flex items-center gap-2">
+            <UserCheck className="h-5 w-5 text-brand-600" />
+            <h3 className="font-display font-bold text-ink-900 dark:text-white text-sm sm:text-base">
+              Hiring Pipeline Progression Levels
+            </h3>
+          </div>
+          <button
+            onClick={() => navigate('/org/candidates')}
+            className="text-xs font-bold text-brand-600 hover:text-brand-700 dark:text-brand-400 flex items-center gap-1"
+          >
+            <span>Open Candidate Pipeline</span>
+            <ArrowRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div
+            onClick={() => navigate('/org/candidates')}
+            className="cursor-pointer rounded-xl border border-indigo-200 dark:border-indigo-900 bg-indigo-50/40 dark:bg-indigo-950/20 p-3.5 hover:border-indigo-400 transition"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 bg-indigo-100 dark:bg-indigo-900/60 px-2 py-0.5 rounded-full">
+                Level 1
+              </span>
+              <span className="text-base">📋</span>
+            </div>
+            <div className="mt-2 text-xl font-extrabold text-ink-900 dark:text-white">
+              {pipelineFunnel.l1}
+            </div>
+            <div className="text-xs font-semibold text-ink-600 dark:text-[#8b949e]">
+              Applied / Review
+            </div>
+          </div>
+
+          <div
+            onClick={() => navigate('/org/candidates')}
+            className="cursor-pointer rounded-xl border border-brand-200 dark:border-brand-900 bg-brand-50/40 dark:bg-brand-950/20 p-3.5 hover:border-brand-400 transition"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-brand-700 dark:text-brand-300 bg-brand-100 dark:bg-brand-900/60 px-2 py-0.5 rounded-full">
+                Level 2
+              </span>
+              <span className="text-base">⭐</span>
+            </div>
+            <div className="mt-2 text-xl font-extrabold text-ink-900 dark:text-white">
+              {pipelineFunnel.l2}
+            </div>
+            <div className="text-xs font-semibold text-ink-600 dark:text-[#8b949e]">
+              Shortlisted
+            </div>
+          </div>
+
+          <div
+            onClick={() => navigate('/org/candidates')}
+            className="cursor-pointer rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50/40 dark:bg-amber-950/20 p-3.5 hover:border-amber-400 transition"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/60 px-2 py-0.5 rounded-full">
+                Level 3
+              </span>
+              <span className="text-base">🎙️</span>
+            </div>
+            <div className="mt-2 text-xl font-extrabold text-ink-900 dark:text-white">
+              {pipelineFunnel.l3}
+            </div>
+            <div className="text-xs font-semibold text-ink-600 dark:text-[#8b949e]">
+              Interviewing
+            </div>
+          </div>
+
+          <div
+            onClick={() => navigate('/org/candidates')}
+            className="cursor-pointer rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50/40 dark:bg-emerald-950/20 p-3.5 hover:border-emerald-400 transition"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/60 px-2 py-0.5 rounded-full">
+                Level 4
+              </span>
+              <span className="text-base">🏆</span>
+            </div>
+            <div className="mt-2 text-xl font-extrabold text-ink-900 dark:text-white">
+              {pipelineFunnel.l4}
+            </div>
+            <div className="text-xs font-semibold text-ink-600 dark:text-[#8b949e]">
+              Offered / Hired
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
