@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Users,
   GitBranch,
@@ -17,7 +17,7 @@ import {
   FolderGit2,
   Share2,
 } from 'lucide-react';
-import { TEAMS, studentMap, skillMap, SKILLS } from '@/data/mockData';
+import { TEAMS, getAllTeams, studentMap, skillMap, SKILLS } from '@/data/mockData';
 import { useRouter } from '@/lib/router';
 import { Avatar } from '@/components/ui';
 import { useToast } from '@/lib/toast';
@@ -38,7 +38,7 @@ const INITIAL_TASKS: KanbanTask[] = [
     id: 'tsk_1',
     title: 'Deploy HIPAA-Compliant Authentication Microservice',
     description: 'Implement JWT refresh tokens, role-based access control, and audit logging for clinician logins.',
-    assigneeStudentId: 'st_kabir',
+    assigneeStudentId: 'st_kavya',
     requiredSkillId: 's_node',
     column: 'completed',
     milestonePoints: 8,
@@ -48,7 +48,7 @@ const INITIAL_TASKS: KanbanTask[] = [
     id: 'tsk_2',
     title: 'Design Clinician Diagnostic Dashboard in Figma',
     description: 'Create responsive high-contrast UI wireframes for patient ECG charts and emergency vital alerts.',
-    assigneeStudentId: 'st_aanya',
+    assigneeStudentId: 'st_rohan',
     requiredSkillId: 's_uiux',
     column: 'completed',
     milestonePoints: 5,
@@ -77,7 +77,7 @@ const INITIAL_TASKS: KanbanTask[] = [
     id: 'tsk_5',
     title: 'Containerize Backend Microservices with Docker Compose',
     description: 'Create multi-stage Dockerfiles and compose configuration for local staging and CI test runs.',
-    assigneeStudentId: 'st_kabir',
+    assigneeStudentId: 'st_kavya',
     requiredSkillId: 's_docker',
     column: 'backlog',
     milestonePoints: 5,
@@ -108,6 +108,12 @@ export function SquadWorkspacePage({ teamId = 'team_ai_health' }: { teamId?: str
   const [tasks, setTasks] = useState<KanbanTask[]>(INITIAL_TASKS);
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
 
+  useEffect(() => {
+    if (teamId && teamId !== selectedTeamId) {
+      setSelectedTeamId(teamId);
+    }
+  }, [teamId]);
+
   // New task form state
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDesc, setNewTaskDesc] = useState('');
@@ -115,7 +121,8 @@ export function SquadWorkspacePage({ teamId = 'team_ai_health' }: { teamId?: str
   const [newTaskSkill, setNewTaskSkill] = useState('s_react');
   const [newTaskPoints, setNewTaskPoints] = useState(5);
 
-  const team = TEAMS.find((t) => t.id === selectedTeamId) || TEAMS[0];
+  const allTeams = getAllTeams();
+  const team = allTeams.find((t) => t.id === selectedTeamId) || TEAMS.find((t) => t.id === selectedTeamId) || TEAMS[0];
 
   // Move task across columns
   const handleMoveTask = (taskId: string, direction: 'left' | 'right') => {
@@ -160,8 +167,8 @@ export function SquadWorkspacePage({ teamId = 'team_ai_health' }: { teamId?: str
   const squadMembers = [
     { student: studentMap['st_aarav'], role: 'Frontend Lead & Core Arch' },
     { student: studentMap['st_diya'], role: 'AI & Data Science Specialist' },
-    { student: studentMap['st_aanya'], role: 'Lead UI/UX & Interaction Designer' },
-    { student: studentMap['st_kabir'], role: 'Backend & Cloud Infrastructure' },
+    { student: studentMap['st_rohan'], role: 'Lead UI/UX & Interaction Designer' },
+    { student: studentMap['st_kavya'], role: 'Backend & Cloud Infrastructure' },
   ].filter((m) => m.student);
 
   const completedCount = tasks.filter((t) => t.column === 'completed').length;

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Target,
   CheckCircle2,
@@ -31,7 +31,7 @@ import {
 } from '@/components/ui';
 import { useDemoStudent } from '@/lib/useDemoStudent';
 import { skillGapAnalysis, rankOpportunitiesForStudent, simulateOpportunityMatch } from '@/lib/matchingEngine';
-import { OPPORTUNITIES, opportunityMap, skillMap } from '@/data/mockData';
+import { getAllOpportunities, opportunityMap, skillMap } from '@/data/mockData';
 import { getLearningPathwayForSkill } from '@/data/learningRoadmaps';
 import { useRouter } from '@/lib/router';
 import { useToast } from '@/lib/toast';
@@ -40,14 +40,23 @@ export function SkillGapPage({ opportunityId }: { opportunityId?: string }) {
   const { studentId, student } = useDemoStudent();
   const { navigate } = useRouter();
   const { toast } = useToast();
-  const [selectedOpp, setSelectedOpp] = useState<string>(opportunityId ?? OPPORTUNITIES[0].id);
+  const opps = getAllOpportunities();
+  const [selectedOpp, setSelectedOpp] = useState<string>(opportunityId ?? opps[0]?.id ?? 'op_fe_intern');
   const [simulatedSkills, setSimulatedSkills] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (opportunityId && opportunityId !== selectedOpp) {
+      setSelectedOpp(opportunityId);
+    }
+  }, [opportunityId]);
 
   if (!student) return null;
 
-  const opp = opportunityMap[selectedOpp];
+  const opp = opportunityMap[selectedOpp] ?? opps[0];
+  if (!opp) return null;
+
   const gap = skillGapAnalysis(studentId, opp);
-  const ranked = rankOpportunitiesForStudent(studentId, OPPORTUNITIES);
+  const ranked = rankOpportunitiesForStudent(studentId, opps);
   const simulated = simulateOpportunityMatch(studentId, opp, simulatedSkills);
   const isSimulating = simulatedSkills.size > 0;
 

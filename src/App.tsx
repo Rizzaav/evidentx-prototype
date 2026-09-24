@@ -70,6 +70,9 @@ const StudentInterviewCoachPage = lazy(() =>
 const SquadWorkspacePage = lazy(() =>
   import('@/pages/SquadWorkspacePage').then((m) => ({ default: m.SquadWorkspacePage }))
 );
+const InstitutionalAnalyticsPage = lazy(() =>
+  import('@/pages/InstitutionalAnalyticsPage').then((m) => ({ default: m.InstitutionalAnalyticsPage }))
+);
 
 import { ToastProvider } from '@/lib/toast';
 
@@ -226,6 +229,8 @@ function renderOrg(seg: string[]): React.ReactNode {
   if (seg[1] === 'dashboard' || !seg[1]) return <OrgDashboardPage />;
   // /org/verifications
   if (seg[1] === 'verifications') return <VerificationQueuePage />;
+  // /org/analytics
+  if (seg[1] === 'analytics') return <InstitutionalAnalyticsPage />;
   // /org/create
   if (seg[1] === 'create') return <CreateOpportunityPage />;
   // /org/candidates

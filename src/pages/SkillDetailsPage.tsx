@@ -10,7 +10,7 @@ import {
   Section,
 } from '@/components/ui';
 import { useDemoStudent } from '@/lib/useDemoStudent';
-import { skillMap, evidenceMap, evidenceSkillStrength, STUDENT_SKILLS } from '@/data/mockData';
+import { skillMap, evidenceMap, evidenceSkillStrength, getStudentSkills } from '@/data/mockData';
 import { useRouter } from '@/lib/router';
 
 export function SkillDetailsPage({ skillId }: { skillId: string }) {
@@ -29,9 +29,8 @@ export function SkillDetailsPage({ skillId }: { skillId: string }) {
   }
 
   // find this student's skill record
-  const ss = STUDENT_SKILLS.find(
-    (s) => s.studentId === student.id && s.skillId === skillId
-  );
+  const studentSkills = getStudentSkills(student.id);
+  const ss = studentSkills.find((s) => s.skillId === skillId);
   const evidenceItems = (ss?.evidenceIds ?? []).map((id: string) => evidenceMap[id]).filter(Boolean);
 
   const proficiency = ss?.proficiency ?? 0;

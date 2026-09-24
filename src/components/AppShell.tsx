@@ -20,6 +20,7 @@ import {
   Brain,
   Building2,
   ShieldCheck,
+  BarChart3,
 } from 'lucide-react';
 import { useRouter } from '@/lib/router';
 import { Logo, LogoMark } from '@/components/Logo';
@@ -46,6 +47,7 @@ const ORG_NAV: NavItem[] = [
   { label: 'Organization Dashboard', path: '/org/dashboard', icon: <LayoutDashboard className="h-4 w-4" /> },
   { label: 'Verification Hub (HITL)', path: '/org/verifications', icon: <ShieldCheck className="h-4 w-4" /> },
   { label: 'Candidate Matching', path: '/org/candidates', icon: <Users className="h-4 w-4" /> },
+  { label: 'Institutional Analytics', path: '/org/analytics', icon: <BarChart3 className="h-4 w-4" /> },
   { label: 'Create Opportunity', path: '/org/create', icon: <PlusCircle className="h-4 w-4" /> },
 ];
 

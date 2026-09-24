@@ -589,11 +589,13 @@ export const evidenceMap: Record<string, Evidence> = buildEvidenceMap();
 
 // =================== Derive Student Skills from Evidence ===================
 // proficiency = weighted average of evidence strengths, with verification bonus.
-function deriveStudentSkills(): StudentSkill[] {
+function deriveAllSkills(): StudentSkill[] {
+  const allStuds = mergedStudents();
+  const allEvid = mergedEvidence();
   const out: StudentSkill[] = [];
-  for (const student of STUDENTS) {
+  for (const student of allStuds) {
     const bySkill = new Map<string, string[]>();
-    for (const e of EVIDENCE) {
+    for (const e of allEvid) {
       if (e.studentId !== student.id) continue;
       for (const skId of e.skills) {
         if (!bySkill.has(skId)) bySkill.set(skId, []);
@@ -604,12 +606,14 @@ function deriveStudentSkills(): StudentSkill[] {
       let total = 0;
       let weightSum = 0;
       for (const evId of evIds) {
-        const strength = evidenceSkillStrength[evId][skillId] ?? 50;
-        const ver = evidenceMap[evId].verification;
+        const strength =
+          _customData.evidenceSkillStrength[evId]?.[skillId] ??
+          evidenceSkillStrength[evId]?.[skillId] ??
+          50;
+        const ver = evidenceMap[evId]?.verification ?? 'self-reported';
         const verMult = ver === 'verified' ? 1.0 : ver === 'pending' ? 0.8 : ver === 'self-reported' ? 0.6 : 0.0;
-        const w = verMult;
-        total += strength * w;
-        weightSum += w;
+        total += strength * verMult;
+        weightSum += verMult;
       }
       const proficiency = weightSum > 0 ? Math.round(total / weightSum) : 0;
       out.push({ studentId: student.id, skillId, proficiency, evidenceIds: evIds });
@@ -618,7 +622,30 @@ function deriveStudentSkills(): StudentSkill[] {
   return out;
 }
 
-export const STUDENT_SKILLS: StudentSkill[] = deriveStudentSkills();
+// Merged collections (lazy + cached so matching engine uses custom data too).
+let _mergedStudents: Student[] | null = null;
+let _mergedEvidence: Evidence[] | null = null;
+let _mergedSkills: StudentSkill[] | null = null;
+
+function mergedStudents(): Student[] {
+  if (!_mergedStudents) _mergedStudents = [...STUDENTS, ..._customData.students];
+  return _mergedStudents;
+}
+function mergedEvidence(): Evidence[] {
+  if (!_mergedEvidence) {
+    const map = new Map<string, Evidence>();
+    for (const e of EVIDENCE) map.set(e.id, e);
+    for (const e of _customData.evidence) map.set(e.id, e);
+    _mergedEvidence = Array.from(map.values());
+  }
+  return _mergedEvidence;
+}
+function mergedSkills(): StudentSkill[] {
+  if (!_mergedSkills) _mergedSkills = deriveAllSkills();
+  return _mergedSkills;
+}
+
+export const STUDENT_SKILLS: StudentSkill[] = deriveAllSkills();
 
 // =================== Custom Students (localStorage) ===================
 export function getCustomData(): CustomData {
@@ -660,58 +687,6 @@ export function _reloadCustomData() {
   _mergedSkills = null;
   _studentSkillsById = null;
   _studentEvidenceById = null;
-}
-
-
-function deriveCustomSkills(): StudentSkill[] {
-  const out: StudentSkill[] = [];
-  for (const student of _customData.students) {
-    const bySkill = new Map<string, string[]>();
-    for (const e of _customData.evidence) {
-      if (e.studentId !== student.id) continue;
-      for (const skId of e.skills) {
-        if (!bySkill.has(skId)) bySkill.set(skId, []);
-        bySkill.get(skId)!.push(e.id);
-      }
-    }
-    for (const [skillId, evIds] of bySkill) {
-      let total = 0;
-      let weightSum = 0;
-      for (const evId of evIds) {
-        const strength = _customData.evidenceSkillStrength[evId]?.[skillId] ?? 50;
-        const ver = _customData.evidence.find((e) => e.id === evId)?.verification ?? 'self-reported';
-        const verMult = ver === 'verified' ? 1.0 : ver === 'pending' ? 0.8 : ver === 'self-reported' ? 0.6 : 0.0;
-        total += strength * verMult;
-        weightSum += verMult;
-      }
-      const proficiency = weightSum > 0 ? Math.round(total / weightSum) : 0;
-      out.push({ studentId: student.id, skillId, proficiency, evidenceIds: evIds });
-    }
-  }
-  return out;
-}
-
-// Merged collections (lazy + cached so matching engine uses custom data too).
-let _mergedStudents: Student[] | null = null;
-let _mergedEvidence: Evidence[] | null = null;
-let _mergedSkills: StudentSkill[] | null = null;
-
-function mergedStudents(): Student[] {
-  if (!_mergedStudents) _mergedStudents = [...STUDENTS, ..._customData.students];
-  return _mergedStudents;
-}
-function mergedEvidence(): Evidence[] {
-  if (!_mergedEvidence) {
-    const map = new Map<string, Evidence>();
-    for (const e of EVIDENCE) map.set(e.id, e);
-    for (const e of _customData.evidence) map.set(e.id, e);
-    _mergedEvidence = Array.from(map.values());
-  }
-  return _mergedEvidence;
-}
-function mergedSkills(): StudentSkill[] {
-  if (!_mergedSkills) _mergedSkills = [...STUDENT_SKILLS, ...deriveCustomSkills()];
-  return _mergedSkills;
 }
 
 export function getAllStudents(): Student[] {

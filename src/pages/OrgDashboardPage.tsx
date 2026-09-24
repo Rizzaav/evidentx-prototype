@@ -10,6 +10,7 @@ import {
   Clock,
   UserCheck,
   ShieldCheck,
+  BarChart3,
 } from 'lucide-react';
 import { useRouter } from '@/lib/router';
 import {
@@ -89,6 +90,9 @@ export function OrgDashboardPage() {
               </button>
               <button onClick={() => navigate('/org/verifications')} className="btn-secondary bg-amber-400/20 text-white border-amber-300/40 hover:bg-amber-400/30 text-xs inline-flex items-center gap-1.5">
                 <ShieldCheck className="h-4 w-4 text-amber-300" /> Verification Hub (HITL)
+              </button>
+              <button onClick={() => navigate('/org/analytics')} className="btn-secondary bg-emerald-500/20 text-white border-emerald-300/40 hover:bg-emerald-500/30 text-xs inline-flex items-center gap-1.5">
+                <BarChart3 className="h-4 w-4 text-emerald-300" /> Institutional Analytics
               </button>
             </div>
           </div>

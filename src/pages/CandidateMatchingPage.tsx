@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   ArrowRight,
   Building2,
@@ -73,6 +73,12 @@ export function CandidateMatchingPage({ opportunityId }: { opportunityId?: strin
   const [selectedOpp, setSelectedOpp] = useState<string>(
     opportunityId ?? opportunities[0]?.id ?? 'op_fe_intern'
   );
+
+  useEffect(() => {
+    if (opportunityId && opportunityId !== selectedOpp) {
+      setSelectedOpp(opportunityId);
+    }
+  }, [opportunityId]);
   const [query, setQuery] = useState('');
   const debouncedQuery = useDebounce(query, 180);
   const [filterApplicantsOnly, setFilterApplicantsOnly] = useState(false);

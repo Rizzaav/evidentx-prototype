@@ -47,7 +47,7 @@ export function PublicPassportPage({ studentId }: { studentId: string }) {
   const [copiedHash, setCopiedHash] = useState(false);
   const [photoHash, setPhotoHash] = useState<string | null>(null);
 
-  const student = studentMap[studentId] ?? Object.values(studentMap)[0];
+  const student = studentMap[studentId];
 
   useEffect(() => {
     if (student) {

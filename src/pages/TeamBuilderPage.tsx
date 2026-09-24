@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Users,
   ArrowRight,
@@ -41,6 +41,12 @@ export function TeamBuilderPage({ teamId }: { teamId?: string }) {
   const { teams } = useCustomTeams();
   const { toast } = useToast();
   const [selectedTeamId, setSelectedTeamId] = useState(teamId ?? teams[0]?.id ?? 'team_ai_health');
+
+  useEffect(() => {
+    if (teamId && teamId !== selectedTeamId) {
+      setSelectedTeamId(teamId);
+    }
+  }, [teamId]);
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
   const [showDossierModal, setShowDossierModal] = useState(false);
   const [lastOptimized, setLastOptimized] = useState<OptimalSquadResult | null>(null);
