@@ -177,6 +177,13 @@ type E = {
   skills: { id: string; strength: number }[];
   verification: Evidence['verification'];
   score?: string;
+  url?: string;
+  evidenceHash?: string;
+  verificationMethod?: string;
+  verifiedBy?: string;
+  verifiedAt?: string;
+  rejectionReason?: string;
+  aiAuditSummary?: Evidence['aiAuditSummary'];
 };
 
 const RAW_EVIDENCE: E[] = [
@@ -203,7 +210,23 @@ const RAW_EVIDENCE: E[] = [
     description: 'REST API with Node.js, Express, MongoDB. JWT auth, payments, inventory.',
     issuer: 'Personal Project', date: '2025-01-05',
     skills: [{ id: 's_node', strength: 85 }, { id: 's_express', strength: 82 }, { id: 's_mongo', strength: 74 }, { id: 's_sql', strength: 45 }],
-    verification: 'self-reported',
+    verification: 'pending',
+    evidenceHash: 'c9f872b1587e914041b65e23da049281a1795e1e19483c68352bfa7b89791102',
+    verificationMethod: 'AI Forensic Pre-Screen & HITL Review Queue',
+    aiAuditSummary: {
+      confidenceScore: 88,
+      nameMatch: true,
+      extractedRecipient: 'Aarav Sharma',
+      issuerDetected: 'GitHub Repository Artifact',
+      flags: [
+        '✅ Candidate Identity Verified: Full name "Aarav Sharma" detected in project repository README.',
+        '🏛️ Recognized Platform: GitHub source code archive submitted.',
+        '🎯 Competency Mapping: 4 backend competencies correlated (Node.js, Express, MongoDB, SQL).'
+      ],
+      skillsDetected: ['Node.js', 'Express', 'MongoDB', 'SQL'],
+      ocrSnippet: 'E-Commerce backend REST API with JWT authorization, stripe webhooks, order processing pipeline.',
+      analyzedAt: '2026-09-20T10:30:00Z',
+    },
   },
   {
     id: 'ev_aarav_4', studentId: 'st_aarav', type: 'credential',
@@ -367,7 +390,23 @@ const RAW_EVIDENCE: E[] = [
     description: 'Built interactive React prototype from Figma for handoff.',
     issuer: 'Course Project', date: '2025-03-25',
     skills: [{ id: 's_react', strength: 62 }, { id: 's_js', strength: 60 }],
-    verification: 'self-reported',
+    verification: 'pending',
+    evidenceHash: 'b4a187e029f631a0e83b4c12d45819e6473210985a7201bc6382109472301984',
+    verificationMethod: 'AI Forensic Pre-Screen & HITL Review Queue',
+    aiAuditSummary: {
+      confidenceScore: 84,
+      nameMatch: true,
+      extractedRecipient: 'Rohan Mehta',
+      issuerDetected: 'NID Coursework Prototype',
+      flags: [
+        '✅ Candidate Identity Verified: Name matched to Rohan Mehta.',
+        '🏫 Institutional Project: NID interaction design capstone.',
+        '🎯 Competency Mapping: 2 frontend skills identified (React, JavaScript).'
+      ],
+      skillsDetected: ['React', 'JavaScript'],
+      ocrSnippet: 'Interactive Figma design system handoff implemented with component library and storybook.',
+      analyzedAt: '2026-09-18T14:20:00Z',
+    },
   },
 
   // ----- Kavya (backend/cloud) -----
@@ -516,6 +555,13 @@ export const EVIDENCE: Evidence[] = RAW_EVIDENCE.map((e) => {
     verification: e.verification,
     strength: Math.max(...e.skills.map((s) => s.strength)),
     score: e.score,
+    url: e.url,
+    evidenceHash: e.evidenceHash,
+    verificationMethod: e.verificationMethod,
+    verifiedBy: e.verifiedBy,
+    verifiedAt: e.verifiedAt,
+    rejectionReason: e.rejectionReason,
+    aiAuditSummary: e.aiAuditSummary,
   };
   return flat;
 });
@@ -560,7 +606,7 @@ function deriveStudentSkills(): StudentSkill[] {
       for (const evId of evIds) {
         const strength = evidenceSkillStrength[evId][skillId] ?? 50;
         const ver = evidenceMap[evId].verification;
-        const verMult = ver === 'verified' ? 1.0 : ver === 'pending' ? 0.8 : 0.6;
+        const verMult = ver === 'verified' ? 1.0 : ver === 'pending' ? 0.8 : ver === 'self-reported' ? 0.6 : 0.0;
         const w = verMult;
         total += strength * w;
         weightSum += w;
@@ -634,7 +680,7 @@ function deriveCustomSkills(): StudentSkill[] {
       for (const evId of evIds) {
         const strength = _customData.evidenceSkillStrength[evId]?.[skillId] ?? 50;
         const ver = _customData.evidence.find((e) => e.id === evId)?.verification ?? 'self-reported';
-        const verMult = ver === 'verified' ? 1.0 : ver === 'pending' ? 0.8 : 0.6;
+        const verMult = ver === 'verified' ? 1.0 : ver === 'pending' ? 0.8 : ver === 'self-reported' ? 0.6 : 0.0;
         total += strength * verMult;
         weightSum += verMult;
       }
@@ -655,7 +701,12 @@ function mergedStudents(): Student[] {
   return _mergedStudents;
 }
 function mergedEvidence(): Evidence[] {
-  if (!_mergedEvidence) _mergedEvidence = [...EVIDENCE, ..._customData.evidence];
+  if (!_mergedEvidence) {
+    const map = new Map<string, Evidence>();
+    for (const e of EVIDENCE) map.set(e.id, e);
+    for (const e of _customData.evidence) map.set(e.id, e);
+    _mergedEvidence = Array.from(map.values());
+  }
   return _mergedEvidence;
 }
 function mergedSkills(): StudentSkill[] {

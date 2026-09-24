@@ -242,7 +242,7 @@ export function LmsWebhookSimulatorModal({
               <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
                 <div className="text-[11px] text-ink-500 dark:text-[#8b949e] flex items-center gap-1.5">
                   <ShieldCheck className="h-4 w-4 text-emerald-500" />
-                  <span>Automatically computes SHA-256 seal and awards verified skill points</span>
+                  <span>Automatically computes tamper-evident seal and awards verified skill points</span>
                 </div>
                 <button
                   onClick={handleSendWebhook}
@@ -265,7 +265,7 @@ export function LmsWebhookSimulatorModal({
                     Successfully committed <strong>"{lastReceipt.courseTitle}"</strong> into the student's immutable evidence portfolio.
                   </div>
                   <div className="p-2.5 rounded-xl bg-white/70 dark:bg-[#0d1117]/80 border border-emerald-300 dark:border-emerald-800/80 font-mono text-[10px] text-emerald-800 dark:text-emerald-300 break-all">
-                    SHA-256 Seal: {lastReceipt.digest}
+                    Audit Seal: {lastReceipt.digest}
                   </div>
                 </div>
               )}
@@ -351,7 +351,7 @@ export function LmsWebhookSimulatorModal({
                         <code className="font-mono">{log.evidenceId}</code>
                       </div>
                       <div className="font-mono text-[9px] text-emerald-600 dark:text-emerald-400 truncate max-w-[320px] mt-0.5">
-                        SHA256: {log.sha256Digest}
+                        Audit Seal: {log.sha256Digest}
                       </div>
                     </div>
                     <div className="text-right text-[10px] text-ink-400 font-mono whitespace-nowrap">

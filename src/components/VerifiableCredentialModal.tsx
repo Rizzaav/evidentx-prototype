@@ -422,7 +422,7 @@ export function VerifiableCredentialModal({
                   </div>
                   <div className="text-[11px] opacity-90 mt-1 font-mono">
                     {sandboxAuditResult.isValid
-                      ? 'The Ed25519 digital signature matches the SHA-256 canonical digest perfectly.'
+                      ? 'The Ed25519 digital signature matches the canonical credential digest perfectly.'
                       : `Expected: ${sandboxAuditResult.expectedSignature.slice(0, 36)}... | Computed: ${sandboxAuditResult.computedSignature.slice(0, 36)}...`}
                   </div>
                 </div>

@@ -200,7 +200,7 @@ export function MatchRing({
 }
 
 // ============ Verification Pill ============
-export function VerificationPill({ status }: { status: 'verified' | 'pending' | 'self-reported' }) {
+export function VerificationPill({ status }: { status: 'verified' | 'pending' | 'self-reported' | 'rejected' }) {
   if (status === 'verified')
     return (
       <Chip color="emerald" icon={<CheckIcon />}>
@@ -210,7 +210,13 @@ export function VerificationPill({ status }: { status: 'verified' | 'pending' | 
   if (status === 'pending')
     return (
       <Chip color="amber" icon={<ClockIcon />}>
-        Pending
+        Pending Review
+      </Chip>
+    );
+  if (status === 'rejected')
+    return (
+      <Chip color="rose" icon={<XCircleIcon />}>
+        Rejected
       </Chip>
     );
   return (
@@ -363,6 +369,14 @@ function UserIcon() {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3 w-3">
       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
       <circle cx="12" cy="7" r="4" />
+    </svg>
+  );
+}
+function XCircleIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3 w-3">
+      <circle cx="12" cy="12" r="10" />
+      <path d="m15 9-6 6M9 9l6 6" />
     </svg>
   );
 }

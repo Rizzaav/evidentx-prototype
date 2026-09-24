@@ -9,6 +9,7 @@ import {
   MapPin,
   Clock,
   UserCheck,
+  ShieldCheck,
 } from 'lucide-react';
 import { useRouter } from '@/lib/router';
 import {
@@ -79,12 +80,15 @@ export function OrgDashboardPage() {
             <p className="mt-2 max-w-xl text-ink-200 text-xs sm:text-sm leading-relaxed">
               Create opportunities with required and preferred competencies, then inspect ranked candidate portfolios with deterministic match breakdowns based on demonstrated proof.
             </p>
-            <div className="mt-5 flex gap-3">
+            <div className="mt-5 flex flex-wrap gap-3">
               <button onClick={() => navigate('/org/create')} className="btn-primary bg-white text-accent-800 hover:bg-ink-100 text-xs shadow-card">
                 <PlusCircle className="h-4 w-4" /> Create Opportunity
               </button>
               <button onClick={() => navigate('/org/candidates')} className="btn-secondary bg-white/10 text-white border-white/20 hover:bg-white/20 text-xs">
                 <Users className="h-4 w-4" /> Browse Candidates
+              </button>
+              <button onClick={() => navigate('/org/verifications')} className="btn-secondary bg-amber-400/20 text-white border-amber-300/40 hover:bg-amber-400/30 text-xs inline-flex items-center gap-1.5">
+                <ShieldCheck className="h-4 w-4 text-amber-300" /> Verification Hub (HITL)
               </button>
             </div>
           </div>

@@ -42,12 +42,17 @@ import { useNotifications } from '@/lib/notifications';
 import { useToast } from '@/lib/toast';
 import { CandidateAiDossier } from '@/components/CandidateAiDossier';
 import { PipelineStepper } from '@/components/PipelineStepper';
-import type { ApplicationStatus } from '@/types';
+import { HitlVerificationModal } from '@/components/HitlVerificationModal';
+import { useCustomStudents } from '@/lib/customStudents';
+import type { ApplicationStatus, Evidence } from '@/types';
 
 export function CandidateDetailsPage({ opportunityId, studentId }: { opportunityId: string; studentId: string }) {
   const { navigate } = useRouter();
   const { getApplication, updateStatus } = useApplications();
   const { notifications } = useNotifications();
+  useCustomStudents(); // Re-render when evidence is verified
+
+  const [auditingEvidence, setAuditingEvidence] = useState<Evidence | null>(null);
 
   const opp = opportunityMap[opportunityId];
   const student = studentMap[studentId];
@@ -220,7 +225,7 @@ ${opp.organization}`,
               <div className="flex items-center gap-2">
                 <span className="font-bold text-indigo-900 dark:text-white">Verified Evidence Recently Updated</span>
                 <span className="text-[10px] font-extrabold bg-indigo-100 dark:bg-indigo-900/60 border border-indigo-200 dark:border-indigo-800 text-indigo-800 dark:text-indigo-300 px-2 py-0.5 rounded-full uppercase">
-                  SHA-256 Resealed
+                  Evidence Updated
                 </span>
               </div>
               <p className="text-indigo-700 dark:text-indigo-300 mt-0.5">{recentEvidenceUpdate.message}</p>
@@ -291,12 +296,36 @@ ${opp.organization}`,
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2">
-                      <span className="font-semibold text-ink-900 text-sm">{e.title}</span>
-                      <VerificationPill status={e.verification} />
+                      <span className="font-semibold text-ink-900 dark:text-white text-sm">{e.title}</span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <VerificationPill status={e.verification} />
+                        <button
+                          onClick={() => setAuditingEvidence(e)}
+                          className="px-2 py-0.5 rounded-lg border border-indigo-200 dark:border-indigo-800 text-[11px] font-bold text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 inline-flex items-center gap-1 transition shadow-2xs"
+                          title="Open Human-in-the-Loop Verification Audit"
+                        >
+                          <UserCheck className="h-3 w-3" />
+                          <span>{e.verification === 'pending' ? 'Audit & Verify' : 'Audit Trail'}</span>
+                        </button>
+                      </div>
                     </div>
-                    <div className="text-xs text-ink-500">{e.issuer} · {new Date(e.date).toLocaleDateString('en-IN', { year: 'numeric', month: 'short' })}{e.score && ` · ${e.score}`}</div>
+                    <div className="text-xs text-ink-500 dark:text-[#8b949e]">
+                      {e.issuer} · {new Date(e.date).toLocaleDateString('en-IN', { year: 'numeric', month: 'short' })}{e.score && ` · ${e.score}`}
+                    </div>
+                    {e.verifiedBy && (
+                      <div className="text-[11px] text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-1 mt-0.5">
+                        <CheckCircle2 className="h-3 w-3" />
+                        <span>Signed by {e.verifiedBy}</span>
+                      </div>
+                    )}
+                    {e.verification === 'rejected' && e.rejectionReason && (
+                      <div className="text-[11px] text-rose-600 dark:text-rose-400 font-semibold flex items-center gap-1 mt-0.5">
+                        <XCircle className="h-3 w-3" />
+                        <span>Flagged: {e.rejectionReason}</span>
+                      </div>
+                    )}
                     <div className="mt-1.5 flex flex-wrap gap-1">
-                      {e.skills.map((id) => <span key={id} className="text-[11px] rounded bg-ink-50 px-1.5 py-0.5 text-ink-600">{skillMap[id]?.name}</span>)}
+                      {e.skills.map((id) => <span key={id} className="text-[11px] rounded bg-ink-50 dark:bg-[#21262d] px-1.5 py-0.5 text-ink-600 dark:text-[#c9d1d9]">{skillMap[id]?.name}</span>)}
                     </div>
                   </div>
                 </div>
@@ -351,7 +380,7 @@ ${opp.organization}`,
               {[
                 { key: 'technical', label: 'Technical Proficiency', desc: 'Core languages, libraries, algorithms' },
                 { key: 'architecture', label: 'Architecture & Design', desc: 'System structure, trade-offs, scale' },
-                { key: 'evidence', label: 'Evidence Verifiability', desc: 'Cryptographic proof & project rigor' },
+                { key: 'evidence', label: 'Evidence Verifiability', desc: 'Verified artifacts & project rigor' },
                 { key: 'communication', label: 'Team Communication', desc: 'Clarity, collaboration, velocity' },
               ].map((c) => {
                 const val = scorecard[c.key as keyof typeof scorecard] as number;
@@ -589,6 +618,17 @@ ${opp.organization}`,
             </div>
           </div>
         </div>
+      )}
+
+      {/* HITL Verification Modal */}
+      {auditingEvidence && (
+        <HitlVerificationModal
+          evidence={auditingEvidence}
+          onClose={() => setAuditingEvidence(null)}
+          onVerified={(updated) => {
+            setAuditingEvidence(updated);
+          }}
+        />
       )}
     </div>
   );

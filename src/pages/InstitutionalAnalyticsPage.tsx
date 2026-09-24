@@ -151,7 +151,7 @@ const PROGRAM_OUTCOMES = [
     target: 75,
     actual: 84,
     status: 'Target Met',
-    evidenceProof: 'Verified AWS & Docker Badges with SHA-256',
+    evidenceProof: 'Verified AWS & Docker Credentials',
   },
   {
     po: 'PO9',
@@ -425,7 +425,7 @@ export function InstitutionalAnalyticsPage() {
                     <span>Peer-Review Ready</span>
                   </span>
                   <span className="font-mono text-[11px] text-ink-400">
-                    Audit Hash: SHA256-DEPT-{dept.code}
+                    Audit Seal: DEPT-{dept.code}-VERIFIED
                   </span>
                 </div>
               </div>

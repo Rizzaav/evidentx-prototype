@@ -35,6 +35,7 @@ const VERIFICATION_MULTIPLIER: Record<Evidence['verification'], number> = {
   verified: 1.0,
   pending: 0.8,
   'self-reported': 0.6,
+  rejected: 0.0,
 };
 
 // Thresholds for matched / partial / missing

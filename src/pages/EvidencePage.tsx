@@ -46,7 +46,9 @@ import { verifyUploadedFile, inspectIssuerAuthority, type FileVerificationResult
 import { notifyRecruitersOnEvidenceUpdate } from '@/lib/notifications';
 import { LmsWebhookSimulatorModal } from '@/components/LmsWebhookSimulatorModal';
 import { VerifiableCredentialModal } from '@/components/VerifiableCredentialModal';
-import type { Evidence, EvidenceType, VerificationStatus } from '@/types';
+import { auditUploadedDocument, type DocumentAuditResult } from '@/lib/documentAuditor';
+import { HitlVerificationModal } from '@/components/HitlVerificationModal';
+import type { Evidence, EvidenceType, VerificationStatus, AiAuditSummary } from '@/types';
 
 const FILTERS = ['all', 'coursework', 'project', 'competition', 'credential'] as const;
 
@@ -72,12 +74,14 @@ export function EvidencePage() {
   const [score, setScore] = useState('');
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [skillStrengths, setSkillStrengths] = useState<Record<string, number>>({});
-  const [verification, setVerification] = useState<VerificationStatus>('verified');
+  const [verification, setVerification] = useState<VerificationStatus>('pending');
   const [verificationMethod, setVerificationMethod] = useState<string>('Standard Attestation');
 
-  // File upload state
+  // File upload state & AI pre-audit
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [fileVerification, setFileVerification] = useState<FileVerificationResult | null>(null);
+  const [uploadedAuditSummary, setUploadedAuditSummary] = useState<AiAuditSummary | null>(null);
+  const [hitlModalEvidence, setHitlModalEvidence] = useState<Evidence | null>(null);
 
   // Live GitHub Scanner state
   const [githubUrl, setGithubUrl] = useState('');
@@ -115,8 +119,11 @@ export function EvidencePage() {
     setScore('');
     setSelectedSkills([]);
     setSkillStrengths({});
+    setVerification('pending');
+    setUploadedAuditSummary(null);
     setAiAuditNote(null);
     setUploadedFileName(null);
+    setFileVerification(null);
     setGithubUrl('');
     setGithubScanData(null);
     setEditingEvidenceId(null);
@@ -145,6 +152,8 @@ export function EvidencePage() {
     }
     setSkillStrengths(existingStrengths);
     setVerification(ev.verification);
+    setUploadedAuditSummary(ev.aiAuditSummary || null);
+    setUploadedFileName(ev.uploadedFileName || null);
     setVerificationMethod(ev.verificationMethod || 'Standard Attestation');
     setModalTab('form');
     setShowModal(true);
@@ -236,7 +245,6 @@ export function EvidencePage() {
         setSelectedSkills([]);
         setSkillStrengths({});
         setAiAuditNote(result.statusMessage);
-        // Do not redirect to form tab so the candidate clearly sees the integrity alert
         return;
       }
 
@@ -259,6 +267,7 @@ export function EvidencePage() {
           ? `Verified GitHub Repo (${result.stars} ★)`
           : 'Production Codebase'
       );
+      // Cryptographically verified author commits directly from GitHub API
       setVerification('verified');
       setVerificationMethod(
         isContributor
@@ -284,22 +293,45 @@ export function EvidencePage() {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const verifiedFile = await verifyUploadedFile(file);
-      setFileVerification(verifiedFile);
-      setUploadedFileName(file.name);
-      setTitle(`Document: ${file.name.replace(/\.[^/.]+$/, '')}`);
-      setType('credential');
-      setIssuer('Verified Issuer / Uploaded Document');
-      setScore(`SHA-256 Verified (${verifiedFile.fileSizeFormatted})`);
-      setVerification('verified');
-      setVerificationMethod('Binary Document SHA-256 Checksum');
-      setDescription(`Cryptographically hashed binary artifact (${file.name}, ${verifiedFile.fileSizeFormatted}, ${verifiedFile.mimeType}). SHA-256 Digest: ${verifiedFile.sha256Hash}`);
+      setIsAnalyzing(true);
+      try {
+        const auditResult = await auditUploadedDocument(file, student);
+        setFileVerification({
+          fileName: auditResult.fileName,
+          fileSizeFormatted: auditResult.fileSizeFormatted,
+          fileSizeBytes: auditResult.fileSizeBytes,
+          mimeType: auditResult.mimeType,
+          sha256Hash: auditResult.sha256Hash,
+          verificationSeal: auditResult.verificationSeal,
+          isTamperFree: auditResult.isTamperFree,
+          signatureTimestamp: new Date().toISOString(),
+        });
+        setUploadedFileName(file.name);
+        setUploadedAuditSummary(auditResult.aiAuditSummary);
+        setTitle(auditResult.suggestedTitle);
+        setType('credential');
+        setIssuer(auditResult.suggestedIssuer);
+        setScore(`Document Attached · Pending Review`);
+        // ⭐ ZERO-TRUST DEFAULT: NEVER VERIFIED UPON UPLOAD!
+        setVerification('pending');
+        setVerificationMethod('AI Forensics & HITL Review Queue');
+        setDescription(
+          `Document artifact (${file.name}, ${auditResult.fileSizeFormatted}). Tamper-evident seal created. Pre-screened with ${auditResult.aiAuditSummary.confidenceScore}% authenticity confidence.`
+        );
 
-      const credSkills = ['s_aws', 's_docker', 's_problem'];
-      setSelectedSkills(credSkills);
-      setSkillStrengths({ s_aws: 92, s_docker: 88, s_problem: 86 });
-      setModalTab('form');
-      setAiAuditNote(`Binary SHA-256 Fingerprint Generated: ${verifiedFile.sha256Hash.slice(0, 18)}... (Tamper-Free Seal Valid)`);
+        setSelectedSkills(auditResult.detectedSkills);
+        setSkillStrengths(auditResult.suggestedStrengths);
+        setModalTab('form');
+
+        const identityLabel = auditResult.aiAuditSummary.nameMatch ? 'Recipient Confirmed' : 'Recipient Unconfirmed';
+        setAiAuditNote(
+          `AI Document Pre-Audit Complete (${auditResult.aiAuditSummary.confidenceScore}% Score): ${identityLabel}. Extracted ${auditResult.detectedSkills.length} competencies. Status held as Pending Review awaiting human verifier signature.`
+        );
+      } catch (err: any) {
+        console.error('Document audit error:', err);
+      } finally {
+        setIsAnalyzing(false);
+      }
     }
   };
 
@@ -337,6 +369,8 @@ export function EvidencePage() {
       url: url.trim() || undefined,
       evidenceHash: fingerprint.hash,
       verificationMethod: verificationMethod || 'Algorithmic Proof Ledger',
+      aiAuditSummary: uploadedAuditSummary || undefined,
+      uploadedFileName: uploadedFileName || undefined,
     };
 
     if (editingEvidenceId) {
@@ -349,13 +383,19 @@ export function EvidencePage() {
         newHash: fingerprint.hash,
       });
       setAuditAlertMessage(
-        `Verified evidence "${newEv.title}" updated & resealed with SHA-256 (${fingerprint.hash.slice(0, 12)}...). Reviewing recruiters have been notified in real time!`
+        `Evidence "${newEv.title}" updated successfully! Reviewing verifiers notified.`
       );
     } else {
       addEvidence(newEv, skillStrengths);
-      setAuditAlertMessage(
-        `New verified evidence "${newEv.title}" sealed with SHA-256 and added to your Skill Passport!`
-      );
+      if (newEv.verification === 'pending') {
+        setAuditAlertMessage(
+          `Evidence "${newEv.title}" queued in the Verification Hub for Human-in-the-Loop review! Provisional credit applied.`
+        );
+      } else {
+        setAuditAlertMessage(
+          `Evidence "${newEv.title}" added to your Skill Passport!`
+        );
+      }
     }
 
     setShowModal(false);
@@ -397,7 +437,7 @@ export function EvidencePage() {
     <div>
       <PageHeader
         title="Evidence & Credentials"
-        subtitle="Every skill is backed by live verifiable proof and cryptographic SHA-256 hashes"
+        subtitle="Every skill is backed by demonstrated proof, verifiable artifacts, and tamper-evident records"
         right={
           <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             <button
@@ -480,7 +520,7 @@ export function EvidencePage() {
           {filtered.map((e) => {
             const shortHash = e.evidenceHash
               ? `${e.evidenceHash.slice(0, 10)}...${e.evidenceHash.slice(-6)}`
-              : `sha256_${e.id.slice(-8)}`;
+              : `seal_${e.id.slice(-8)}`;
 
             return (
               <Card key={e.id} className="p-5 hover:shadow-lift transition-all border border-ink-200/80 group">
@@ -532,23 +572,73 @@ export function EvidencePage() {
                       )}
                     </div>
 
-                    {/* Cryptographic SHA-256 Proof Badge */}
+                    {/* Cryptographic Proof Badge & HITL Audit Button */}
                     <div className="mt-3 flex items-center justify-between border-t border-ink-100 pt-2.5">
                       <button
                         onClick={() => handleInspectProof(e)}
                         className="inline-flex items-center gap-1.5 rounded-md bg-ink-50 px-2 py-1 text-[11px] font-mono text-ink-600 hover:bg-brand-50 hover:text-brand-700 transition"
-                        title="Click to inspect cryptographic SHA-256 proof"
+                        title="Click to inspect cryptographic proof seal"
                       >
                         <Lock className="h-3 w-3 text-emerald-600" />
-                        <span className="font-semibold">SHA-256:</span>
+                        <span className="font-semibold">Audit Seal:</span>
                         <span>{shortHash}</span>
                       </button>
 
-                      <div className="text-[11px] font-medium text-emerald-700 flex items-center gap-1">
-                        <ShieldCheck className="h-3.5 w-3.5" />
-                        <span>{e.strength}% Strength</span>
-                      </div>
+                      <button
+                        onClick={() => setHitlModalEvidence(e)}
+                        className="inline-flex items-center gap-1 rounded-md bg-indigo-50 dark:bg-indigo-950/60 px-2 py-1 text-[11px] font-semibold text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 transition"
+                        title="Open Human-in-the-Loop Verification Audit"
+                      >
+                        <ShieldCheck className="h-3.5 w-3.5 text-indigo-600" />
+                        <span>HITL Audit</span>
+                      </button>
                     </div>
+
+                    {/* HITL Status Banner */}
+                    {e.verification === 'pending' && (
+                      <div className="mt-2.5 flex items-center justify-between gap-2 p-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-[11px] text-amber-900 dark:text-amber-300">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
+                          <span className="truncate">Pending HITL Review · 0.8x provisional weight</span>
+                        </div>
+                        <button
+                          onClick={() => setHitlModalEvidence(e)}
+                          className="font-bold underline hover:text-amber-950 dark:hover:text-white shrink-0"
+                        >
+                          Pre-Audit
+                        </button>
+                      </div>
+                    )}
+
+                    {e.verification === 'verified' && e.verifiedBy && (
+                      <div className="mt-2.5 flex items-center justify-between gap-2 p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-[11px] text-emerald-900 dark:text-emerald-300">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                          <span className="truncate">Verified by {e.verifiedBy}</span>
+                        </div>
+                        <button
+                          onClick={() => setHitlModalEvidence(e)}
+                          className="font-bold underline hover:text-emerald-950 dark:hover:text-white shrink-0"
+                        >
+                          Seal
+                        </button>
+                      </div>
+                    )}
+
+                    {e.verification === 'rejected' && (
+                      <div className="mt-2.5 flex items-center justify-between gap-2 p-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-[11px] text-rose-900 dark:text-rose-300">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <X className="h-3.5 w-3.5 text-rose-600 shrink-0" />
+                          <span className="truncate">Flagged: {e.rejectionReason || 'Failed verification'}</span>
+                        </div>
+                        <button
+                          onClick={() => setHitlModalEvidence(e)}
+                          className="font-bold underline hover:text-rose-950 dark:hover:text-white shrink-0"
+                        >
+                          Notes
+                        </button>
+                      </div>
+                    )}
 
                     <div className="mt-2.5 pt-2 border-t border-dashed border-ink-100">
                       <div className="text-[10px] font-bold uppercase tracking-wider text-ink-400">Skills Demonstrated</div>
@@ -806,7 +896,7 @@ export function EvidencePage() {
                 <UploadCloud className="h-8 w-8 text-brand-600 mx-auto" />
                 <div>
                   <div className="text-xs font-bold text-ink-900">Upload PDF Certificate or Transcript</div>
-                  <div className="text-[11px] text-ink-500 mt-0.5">Supports PDF, PNG, JPG with automatic SHA-256 sealing</div>
+                  <div className="text-[11px] text-ink-500 mt-0.5">Supports PDF, PNG, JPG with tamper-evident digital sealing</div>
                 </div>
                 <label className="btn-secondary text-xs py-2 px-4 cursor-pointer inline-flex items-center gap-1.5 shadow-2xs">
                   <FileText className="h-3.5 w-3.5" />
@@ -821,7 +911,7 @@ export function EvidencePage() {
                     </div>
                     {fileVerification && (
                       <span className="text-[10px] font-mono text-ink-500">
-                        SHA-256: {fileVerification.sha256Hash.slice(0, 16)}... ({fileVerification.fileSizeFormatted})
+                        Audit Seal: {fileVerification.sha256Hash.slice(0, 16)}... ({fileVerification.fileSizeFormatted})
                       </span>
                     )}
                   </div>
@@ -993,7 +1083,7 @@ export function EvidencePage() {
                 disabled={!title.trim() || selectedSkills.length === 0}
                 className="btn-primary inline-flex items-center gap-1.5"
               >
-                <Lock className="h-4 w-4" /> {editingEvidenceId ? 'Update & Reseal with SHA-256' : 'Seal & Save with SHA-256'}
+                <Lock className="h-4 w-4" /> {editingEvidenceId ? 'Update & Save Changes' : 'Save & Submit Evidence'}
               </button>
             </div>
           </div>
@@ -1033,7 +1123,7 @@ export function EvidencePage() {
         </div>
       )}
 
-      {/* Cryptographic SHA-256 Audit Inspection Modal */}
+      {/* Cryptographic Proof Audit Inspection Modal */}
       {inspectedEvidence && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/60 p-4 backdrop-blur-sm animate-fade-in">
           <div className="w-full max-w-lg rounded-3xl bg-white p-6 sm:p-7 shadow-lift space-y-4">
@@ -1069,7 +1159,7 @@ export function EvidencePage() {
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-ink-400">
-                    Deterministic SHA-256 Fingerprint
+                    Digital Audit Fingerprint
                   </span>
                   <button
                     onClick={() => handleCopyHash(inspectedEvidence.fingerprint.hash)}
@@ -1088,7 +1178,7 @@ export function EvidencePage() {
                 <div className="p-2.5 rounded-xl bg-ink-50 border border-ink-100">
                   <div className="text-[10px] font-bold uppercase text-ink-400">Verification Engine</div>
                   <div className="font-semibold text-ink-800 mt-0.5">
-                    {inspectedEvidence.evidence.verificationMethod || 'Web Crypto SHA-256'}
+                    {inspectedEvidence.evidence.verificationMethod || 'Cryptographic Ledger'}
                   </div>
                 </div>
                 <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800">
@@ -1120,7 +1210,7 @@ export function EvidencePage() {
         onClose={() => setShowLmsModal(false)}
         activeStudentId={studentId}
         onEvidenceAdded={() => {
-          setAuditAlertMessage('Automated LMS Credential received, verified, and sealed with SHA-256!');
+          setAuditAlertMessage('Automated LMS Credential received, verified, and sealed!');
         }}
       />
 
@@ -1132,6 +1222,17 @@ export function EvidencePage() {
         studentSkills={getStudentSkills(studentId)}
         evidenceList={evidence}
       />
+
+      {/* HITL Verification Modal */}
+      {hitlModalEvidence && (
+        <HitlVerificationModal
+          evidence={hitlModalEvidence}
+          onClose={() => setHitlModalEvidence(null)}
+          onVerified={(updated) => {
+            setHitlModalEvidence(updated);
+          }}
+        />
+      )}
     </div>
   );
 }

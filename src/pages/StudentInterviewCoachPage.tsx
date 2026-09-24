@@ -32,6 +32,7 @@ import {
 import { useDemoStudent } from '@/lib/useDemoStudent';
 import { getStudentEvidence, getStudentSkills, skillMap } from '@/data/mockData';
 import { useToast } from '@/lib/toast';
+import { evaluateInterviewAnswer } from '@/lib/gemini';
 
 interface InterviewQuestion {
   id: string;
@@ -60,6 +61,8 @@ interface PracticeAttempt {
   overallGrade: string;
   strengths: string[];
   improvements: string[];
+  detailedCritique?: string;
+  isAiGenerated?: boolean;
   timestamp: string;
 }
 
@@ -165,82 +168,27 @@ export function StudentInterviewCoachPage() {
     return userAnswer.trim() ? userAnswer.trim().split(/\s+/).length : 0;
   }, [userAnswer]);
 
-  // AI Answer Evaluation Simulation
-  const handleEvaluateAnswer = () => {
-    if (!userAnswer.trim() || wordCount < 20) {
-      toast.error('Please write a more detailed response (at least 20 words) for a thorough AI critique.');
+  // AI Answer Evaluation (Gemini AI with Intelligent Semantic Fallback)
+  const handleEvaluateAnswer = async () => {
+    if (!userAnswer.trim() || wordCount < 4) {
+      toast.error('Please write an answer before submitting for AI critique.');
       return;
     }
 
     setIsAnalyzing(true);
-    setTimeout(() => {
-      // Analyze answer depth based on keywords and length
-      const lower = userAnswer.toLowerCase();
-      const mentionsEvidence =
-        lower.includes('project') ||
-        lower.includes('implemented') ||
-        lower.includes('designed') ||
-        lower.includes('data') ||
-        lower.includes('latency') ||
-        lower.includes('because');
-
-      const mentionsMetrics =
-        lower.includes('%') ||
-        lower.includes('reduced') ||
-        lower.includes('improved') ||
-        lower.includes('result') ||
-        lower.includes('metric');
-
-      const hasTechTerms =
-        lower.includes('cache') ||
-        lower.includes('state') ||
-        lower.includes('query') ||
-        lower.includes('index') ||
-        lower.includes('pipeline') ||
-        lower.includes('scale') ||
-        lower.includes('api');
-
-      let techScore = Math.min(95, 65 + (hasTechTerms ? 22 : 8) + (wordCount > 60 ? 8 : 0));
-      let evidenceScore = Math.min(96, 60 + (mentionsEvidence ? 24 : 10) + (mentionsMetrics ? 12 : 0));
-      let commScore = Math.min(98, 70 + (wordCount >= 40 && wordCount <= 220 ? 18 : 6) + (mentionsMetrics ? 10 : 0));
-
-      const avg = Math.round((techScore + evidenceScore + commScore) / 3);
-      const grade =
-        avg >= 88
-          ? 'Strong Hire (L5 Equivalent)'
-          : avg >= 78
-          ? 'Hire (Production Ready)'
-          : avg >= 65
-          ? 'Pass with Follow-up'
-          : 'Needs Technical Depth';
-
-      const strengths: string[] = [];
-      const improvements: string[] = [];
-
-      if (mentionsEvidence) {
-        strengths.push('Grounds explanations in real project context rather than purely abstract theory.');
-      } else {
-        improvements.push('Cite specific architectural decisions or codebase filenames from your verified evidence.');
-      }
-
-      if (hasTechTerms) {
-        strengths.push('Employs precise industry terminology and recognizes key performance trade-offs.');
-      } else {
-        improvements.push('Deepen technical precision: specify data structures, API endpoints, or concurrency limits.');
-      }
-
-      if (mentionsMetrics) {
-        strengths.push('Demonstrates business and technical impact through quantifiable metrics and benchmarks.');
-      } else {
-        improvements.push('Quantify the outcome: specify latency reduction, test coverage %, or memory savings.');
-      }
-
-      if (strengths.length === 0) {
-        strengths.push('Clear and direct communication style addressing the core interview prompt.');
-      }
-      if (improvements.length === 0) {
-        improvements.push('Consider mentioning how you would architect this for continuous integration telemetry.');
-      }
+    try {
+      const evaluation = await evaluateInterviewAnswer({
+        questionTitle: activeQuestion.title,
+        questionScenario: activeQuestion.scenario,
+        questionCategory: activeQuestion.category,
+        difficulty: activeQuestion.difficulty,
+        targetSkills: activeQuestion.targetSkills,
+        starTip: activeQuestion.starTip,
+        modelAnswer: activeQuestion.modelAnswer,
+        userAnswer: userAnswer,
+        evidenceTitle: activeQuestion.evidenceTitle,
+        studentName: student?.name,
+      });
 
       const newAttempt: PracticeAttempt = {
         id: 'attempt_' + Date.now(),
@@ -249,13 +197,15 @@ export function StudentInterviewCoachPage() {
         evidenceTitle: activeQuestion.evidenceTitle,
         answer: userAnswer,
         scores: {
-          technical: techScore,
-          evidence: evidenceScore,
-          communication: commScore,
+          technical: evaluation.technical,
+          evidence: evaluation.evidence,
+          communication: evaluation.communication,
         },
-        overallGrade: grade,
-        strengths,
-        improvements,
+        overallGrade: evaluation.overallGrade,
+        strengths: evaluation.strengths,
+        improvements: evaluation.improvements,
+        detailedCritique: evaluation.detailedCritique,
+        isAiGenerated: evaluation.isAiGenerated,
         timestamp: new Date().toISOString(),
       };
 
@@ -264,9 +214,25 @@ export function StudentInterviewCoachPage() {
       setPracticeHistory(updatedHistory);
       localStorage.setItem(historyStorageKey, JSON.stringify(updatedHistory));
 
+      const avgScore = Math.round(
+        (evaluation.technical + evaluation.evidence + evaluation.communication) / 3
+      );
+
+      if (avgScore < 40 || evaluation.overallGrade.toLowerCase().includes('off-topic')) {
+        toast.info(
+          `Critique generated: ${evaluation.overallGrade}. Score: ${avgScore}%. See feedback below.`
+        );
+      } else {
+        toast.success(
+          `✨ Answer analyzed! Comprehensive AI critique generated (${avgScore}% readiness).`
+        );
+      }
+    } catch (err: any) {
+      console.error('AI Interview Evaluation Error:', err);
+      toast.error('Failed to analyze answer. Please try again.');
+    } finally {
       setIsAnalyzing(false);
-      toast.success('✨ Answer analyzed! Comprehensive AI critique generated.');
-    }, 1200);
+    }
   };
 
   const handleSelectStarter = () => {
@@ -431,7 +397,13 @@ export function StudentInterviewCoachPage() {
                   >
                     <div className="flex items-center justify-between font-semibold text-ink-900 dark:text-white">
                       <span className="truncate max-w-[170px]">{attempt.questionTitle}</span>
-                      <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                      <span className={`text-[10px] font-bold ${
+                        attempt.scores.technical >= 70
+                          ? 'text-emerald-600 dark:text-emerald-400'
+                          : attempt.scores.technical >= 45
+                          ? 'text-amber-600 dark:text-amber-400'
+                          : 'text-rose-600 dark:text-rose-400'
+                      }`}>
                         {attempt.scores.technical}%
                       </span>
                     </div>
@@ -595,112 +567,188 @@ export function StudentInterviewCoachPage() {
           </Card>
 
           {/* AI Rubric Feedback Section */}
-          {activeFeedback && (
-            <Card className="p-6 border-emerald-300 dark:border-emerald-800/80 bg-gradient-to-b from-white to-emerald-50/10 dark:from-ink-900 dark:to-emerald-950/10 shadow-lift animate-in fade-in duration-300">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-ink-100 dark:border-ink-800 pb-4">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                      <ShieldCheck className="h-5 w-5" />
-                    </span>
-                    <Chip color="emerald">Evaluation Rubric Result</Chip>
-                  </div>
-                  <h3 className="mt-1.5 font-display text-lg font-bold text-ink-950 dark:text-white">
-                    Candidate Interview Assessment
-                  </h3>
-                </div>
-                <div className="text-right sm:self-center">
-                  <div className="text-xs font-bold uppercase tracking-wider text-ink-400">Overall Readiness</div>
-                  <div className="inline-block mt-0.5 text-xs font-extrabold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-3 py-1 rounded-full border border-emerald-300 dark:border-emerald-800">
-                    {activeFeedback.overallGrade}
-                  </div>
-                </div>
-              </div>
+          {/* AI Rubric Feedback Section */}
+          {activeFeedback && (() => {
+            const gradeLower = activeFeedback.overallGrade.toLowerCase();
+            const isHire = gradeLower.includes('hire') && !gradeLower.includes('no hire');
+            const isBorderline = gradeLower.includes('pass') || gradeLower.includes('depth') || gradeLower.includes('follow-up');
 
-              {/* Score Breakdown Bars */}
-              <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="rounded-xl border border-ink-100 dark:border-ink-800 p-3 bg-white dark:bg-ink-900">
-                  <div className="flex items-center justify-between text-xs mb-1.5">
-                    <span className="font-semibold text-ink-700 dark:text-ink-300">Technical Depth</span>
-                    <span className="font-extrabold text-emerald-600">{activeFeedback.scores.technical}%</span>
-                  </div>
-                  <ProgressBar value={activeFeedback.scores.technical} height="h-2" />
-                  <div className="mt-2 text-[10px] text-ink-400">Algorithms, concurrency & trade-offs</div>
-                </div>
+            const cardBorderClass = isHire
+              ? 'border-emerald-300 dark:border-emerald-800/80 bg-gradient-to-b from-white to-emerald-50/10 dark:from-ink-900 dark:to-emerald-950/10'
+              : isBorderline
+              ? 'border-amber-300 dark:border-amber-800/80 bg-gradient-to-b from-white to-amber-50/10 dark:from-ink-900 dark:to-amber-950/10'
+              : 'border-rose-300 dark:border-rose-800/80 bg-gradient-to-b from-white to-rose-50/10 dark:from-ink-900 dark:to-rose-950/10';
 
-                <div className="rounded-xl border border-ink-100 dark:border-ink-800 p-3 bg-white dark:bg-ink-900">
-                  <div className="flex items-center justify-between text-xs mb-1.5">
-                    <span className="font-semibold text-ink-700 dark:text-ink-300">Evidence Grounding</span>
-                    <span className="font-extrabold text-indigo-600">{activeFeedback.scores.evidence}%</span>
-                  </div>
-                  <ProgressBar value={activeFeedback.scores.evidence} height="h-2" />
-                  <div className="mt-2 text-[10px] text-ink-400">Concrete project & metric claims</div>
-                </div>
+            const gradeBadgeClass = isHire
+              ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border-emerald-300 dark:border-emerald-800'
+              : isBorderline
+              ? 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 border-amber-300 dark:border-amber-800'
+              : 'text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/60 border-rose-300 dark:border-rose-800';
 
-                <div className="rounded-xl border border-ink-100 dark:border-ink-800 p-3 bg-white dark:bg-ink-900">
-                  <div className="flex items-center justify-between text-xs mb-1.5">
-                    <span className="font-semibold text-ink-700 dark:text-ink-300">STAR Communication</span>
-                    <span className="font-extrabold text-brand-600">{activeFeedback.scores.communication}%</span>
+            return (
+              <Card className={`p-6 shadow-lift animate-in fade-in duration-300 ${cardBorderClass}`}>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-ink-100 dark:border-ink-800 pb-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-flex h-8 w-8 items-center justify-center rounded-lg ${
+                        isHire
+                          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                          : isBorderline
+                          ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                          : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                      }`}>
+                        <ShieldCheck className="h-5 w-5" />
+                      </span>
+                      <Chip color={isHire ? 'emerald' : isBorderline ? 'amber' : 'rose'}>
+                        {activeFeedback.isAiGenerated ? 'Gemini AI Evaluated' : 'Semantic Rubric Evaluated'}
+                      </Chip>
+                    </div>
+                    <h3 className="mt-1.5 font-display text-lg font-bold text-ink-950 dark:text-white">
+                      Candidate Interview Assessment
+                    </h3>
                   </div>
-                  <ProgressBar value={activeFeedback.scores.communication} height="h-2" />
-                  <div className="mt-2 text-[10px] text-ink-400">Structured action-to-impact clarity</div>
-                </div>
-              </div>
-
-              {/* Strengths & Improvements */}
-              <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                <div className="rounded-xl border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50/40 dark:bg-emerald-950/20 p-4">
-                  <div className="flex items-center gap-2 text-xs font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider mb-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                    Demonstrated Strengths
+                  <div className="text-right sm:self-center">
+                    <div className="text-xs font-bold uppercase tracking-wider text-ink-400">Overall Readiness</div>
+                    <div className={`inline-block mt-0.5 text-xs font-extrabold px-3 py-1 rounded-full border ${gradeBadgeClass}`}>
+                      {activeFeedback.overallGrade}
+                    </div>
                   </div>
-                  <ul className="space-y-1.5 text-xs text-ink-700 dark:text-ink-300">
-                    {activeFeedback.strengths.map((s, i) => (
-                      <li key={i} className="flex items-start gap-1.5">
-                        <span className="text-emerald-600 font-bold">•</span>
-                        <span>{s}</span>
-                      </li>
-                    ))}
-                  </ul>
                 </div>
 
-                <div className="rounded-xl border border-amber-200 dark:border-amber-900/40 bg-amber-50/40 dark:bg-amber-950/20 p-4">
-                  <div className="flex items-center gap-2 text-xs font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider mb-2">
-                    <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                    Recommended Improvements
+                {/* AI Engineering Critique Box */}
+                {activeFeedback.detailedCritique && (
+                  <div className="mt-4 p-4 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/40 border border-indigo-200/90 dark:border-indigo-800/80 text-xs">
+                    <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 mb-1.5">
+                      <Brain className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                      <span>Bar-Raiser Technical Critique</span>
+                    </div>
+                    <p className="text-ink-800 dark:text-ink-200 leading-relaxed font-sans">
+                      {activeFeedback.detailedCritique}
+                    </p>
                   </div>
-                  <ul className="space-y-1.5 text-xs text-ink-700 dark:text-ink-300">
-                    {activeFeedback.improvements.map((imp, i) => (
-                      <li key={i} className="flex items-start gap-1.5">
-                        <span className="text-amber-600 font-bold">•</span>
-                        <span>{imp}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
+                )}
 
-              {/* Next Actions */}
-              <div className="mt-5 pt-4 border-t border-ink-100 dark:border-ink-800 flex items-center justify-between">
-                <span className="text-xs text-ink-500 dark:text-ink-400">
-                  Try another question or review your skill gaps.
-                </span>
-                <button
-                  onClick={() => {
-                    const currentIndex = questions.findIndex((q) => q.id === activeQuestion.id);
-                    const nextQ = questions[(currentIndex + 1) % questions.length];
-                    setSelectedQuestionId(nextQ.id);
-                    setUserAnswer('');
-                    setActiveFeedback(null);
-                    setShowModelAnswer(false);
-                  }}
-                  className="btn-primary text-xs inline-flex items-center gap-1.5"
-                >
-                  Next Interview Question <ArrowRight className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            </Card>
-          )}
+                {/* Score Breakdown Bars */}
+                <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="rounded-xl border border-ink-100 dark:border-ink-800 p-3 bg-white dark:bg-ink-900">
+                    <div className="flex items-center justify-between text-xs mb-1.5">
+                      <span className="font-semibold text-ink-700 dark:text-ink-300">Technical Depth</span>
+                      <span className={`font-extrabold ${
+                        activeFeedback.scores.technical >= 70
+                          ? 'text-emerald-600 dark:text-emerald-400'
+                          : activeFeedback.scores.technical >= 45
+                          ? 'text-amber-600 dark:text-amber-400'
+                          : 'text-rose-600 dark:text-rose-400'
+                      }`}>
+                        {activeFeedback.scores.technical}%
+                      </span>
+                    </div>
+                    <ProgressBar
+                      value={activeFeedback.scores.technical}
+                      height="h-2"
+                      color={activeFeedback.scores.technical >= 70 ? 'accent' : activeFeedback.scores.technical >= 45 ? 'amber' : 'rose'}
+                    />
+                    <div className="mt-2 text-[10px] text-ink-400">Algorithms, concurrency & trade-offs</div>
+                  </div>
+
+                  <div className="rounded-xl border border-ink-100 dark:border-ink-800 p-3 bg-white dark:bg-ink-900">
+                    <div className="flex items-center justify-between text-xs mb-1.5">
+                      <span className="font-semibold text-ink-700 dark:text-ink-300">Evidence Grounding</span>
+                      <span className={`font-extrabold ${
+                        activeFeedback.scores.evidence >= 70
+                          ? 'text-indigo-600 dark:text-indigo-400'
+                          : activeFeedback.scores.evidence >= 45
+                          ? 'text-amber-600 dark:text-amber-400'
+                          : 'text-rose-600 dark:text-rose-400'
+                      }`}>
+                        {activeFeedback.scores.evidence}%
+                      </span>
+                    </div>
+                    <ProgressBar
+                      value={activeFeedback.scores.evidence}
+                      height="h-2"
+                      color={activeFeedback.scores.evidence >= 70 ? 'brand' : activeFeedback.scores.evidence >= 45 ? 'amber' : 'rose'}
+                    />
+                    <div className="mt-2 text-[10px] text-ink-400">Concrete project & metric claims</div>
+                  </div>
+
+                  <div className="rounded-xl border border-ink-100 dark:border-ink-800 p-3 bg-white dark:bg-ink-900">
+                    <div className="flex items-center justify-between text-xs mb-1.5">
+                      <span className="font-semibold text-ink-700 dark:text-ink-300">STAR Communication</span>
+                      <span className={`font-extrabold ${
+                        activeFeedback.scores.communication >= 70
+                          ? 'text-brand-600 dark:text-brand-400'
+                          : activeFeedback.scores.communication >= 45
+                          ? 'text-amber-600 dark:text-amber-400'
+                          : 'text-rose-600 dark:text-rose-400'
+                      }`}>
+                        {activeFeedback.scores.communication}%
+                      </span>
+                    </div>
+                    <ProgressBar
+                      value={activeFeedback.scores.communication}
+                      height="h-2"
+                      color={activeFeedback.scores.communication >= 70 ? 'accent' : activeFeedback.scores.communication >= 45 ? 'amber' : 'rose'}
+                    />
+                    <div className="mt-2 text-[10px] text-ink-400">Structured action-to-impact clarity</div>
+                  </div>
+                </div>
+
+                {/* Strengths & Improvements */}
+                <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                  <div className="rounded-xl border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50/40 dark:bg-emerald-950/20 p-4">
+                    <div className="flex items-center gap-2 text-xs font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider mb-2">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                      Demonstrated Strengths
+                    </div>
+                    <ul className="space-y-1.5 text-xs text-ink-700 dark:text-ink-300">
+                      {activeFeedback.strengths.map((s, i) => (
+                        <li key={i} className="flex items-start gap-1.5">
+                          <span className="text-emerald-600 font-bold">•</span>
+                          <span>{s}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="rounded-xl border border-amber-200 dark:border-amber-900/40 bg-amber-50/40 dark:bg-amber-950/20 p-4">
+                    <div className="flex items-center gap-2 text-xs font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider mb-2">
+                      <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                      Recommended Improvements
+                    </div>
+                    <ul className="space-y-1.5 text-xs text-ink-700 dark:text-ink-300">
+                      {activeFeedback.improvements.map((imp, i) => (
+                        <li key={i} className="flex items-start gap-1.5">
+                          <span className="text-amber-600 font-bold">•</span>
+                          <span>{imp}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                {/* Next Actions */}
+                <div className="mt-5 pt-4 border-t border-ink-100 dark:border-ink-800 flex items-center justify-between">
+                  <span className="text-xs text-ink-500 dark:text-ink-400">
+                    Try another question or review your skill gaps.
+                  </span>
+                  <button
+                    onClick={() => {
+                      const currentIndex = questions.findIndex((q) => q.id === activeQuestion.id);
+                      const nextQ = questions[(currentIndex + 1) % questions.length];
+                      setSelectedQuestionId(nextQ.id);
+                      setUserAnswer('');
+                      setActiveFeedback(null);
+                      setShowModelAnswer(false);
+                    }}
+                    className="btn-primary text-xs inline-flex items-center gap-1.5"
+                  >
+                    Next Interview Question <ArrowRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </Card>
+            );
+          })()}
         </div>
       </div>
     </div>

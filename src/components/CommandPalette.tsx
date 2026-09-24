@@ -52,7 +52,7 @@ export function CommandPalette({ isOpen, onClose, onOpenAuthModal }: CommandPale
   const { profile } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { toast } = useToast();
-  const { studentId, setStudentId } = useDemoStudent();
+  const { studentId } = useDemoStudent();
 
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -157,7 +157,7 @@ export function CommandPalette({ isOpen, onClose, onOpenAuthModal }: CommandPale
         id: 'nav_evidence',
         category: 'Navigation',
         title: 'Evidence & Credentials Vault',
-        subtitle: 'GitHub repo scanner, certificates & SHA-256 seal generator',
+        subtitle: 'GitHub repo scanner, certificates & verified proof vault',
         icon: <FolderGit2 className="h-4 w-4 text-brand-600" />,
         action: () => {
           navigate('/student/evidence');
@@ -295,12 +295,11 @@ export function CommandPalette({ isOpen, onClose, onOpenAuthModal }: CommandPale
         subtitle: `${s.program} · ${s.university}`,
         icon: <Avatar name={s.name} color={s.avatarColor} photoUrl={s.photoUrl} size="sm" />,
         action: () => {
-          setStudentId(s.id);
           navigate(`/passport/${s.id}`);
-          toast.info(`Viewing Verified Passport: ${s.name}`);
+          toast.info(`Viewing Public Passport: ${s.name}`);
           onClose();
         },
-        badge: 'Passport',
+        badge: 'Public Passport',
       });
     });
 
@@ -325,7 +324,7 @@ export function CommandPalette({ isOpen, onClose, onOpenAuthModal }: CommandPale
     });
 
     return items;
-  }, [theme, toggleTheme, toast, studentId, onOpenAuthModal, navigate, profile, students, setStudentId, opportunities, onClose]);
+  }, [theme, toggleTheme, toast, studentId, onOpenAuthModal, navigate, profile, students, opportunities, onClose]);
 
   // Filter commands by query
   const filteredCommands = useMemo(() => {

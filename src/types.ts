@@ -1,6 +1,6 @@
 // =================== Core Domain Types ===================
 
-export type VerificationStatus = 'verified' | 'pending' | 'self-reported';
+export type VerificationStatus = 'verified' | 'pending' | 'self-reported' | 'rejected';
 export type EvidenceType = 'coursework' | 'project' | 'competition' | 'credential' | 'experience';
 
 export type UserRole = 'student' | 'organization' | 'team-creator';
@@ -23,6 +23,17 @@ export type SkillCategory =
   | 'Cloud'
   | 'Mobile';
 
+export interface AiAuditSummary {
+  confidenceScore: number; // 0 - 100
+  nameMatch: boolean;
+  extractedRecipient?: string;
+  issuerDetected?: string;
+  flags: string[];
+  skillsDetected: string[];
+  ocrSnippet?: string;
+  analyzedAt: string;
+}
+
 export interface Evidence {
   id: string;
   studentId: string;
@@ -38,6 +49,11 @@ export interface Evidence {
   url?: string;
   evidenceHash?: string; // SHA-256 tamper-proof cryptographic fingerprint
   verificationMethod?: string; // e.g., 'GitHub REST API & AST Parser', 'Institutional SSO', 'Open Badges JSON-LD'
+  verifiedBy?: string; // Reviewer name and title (e.g., 'Prof. Sharma (ITER Academics)', 'TechFlow Recruiter')
+  verifiedAt?: string; // ISO date of reviewer sign-off
+  rejectionReason?: string;
+  aiAuditSummary?: AiAuditSummary;
+  uploadedFileName?: string;
 }
 
 export interface StudentSkill {

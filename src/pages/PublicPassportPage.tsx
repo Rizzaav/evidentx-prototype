@@ -114,7 +114,7 @@ export function PublicPassportPage({ studentId }: { studentId: string }) {
   const handleCopyHash = () => {
     navigator.clipboard.writeText(verificationHash);
     setCopiedHash(true);
-    toast.success('SHA-256 digest copied to clipboard!');
+    toast.success('Verification hash copied to clipboard!');
     setTimeout(() => setCopiedHash(false), 2000);
   };
 
@@ -125,7 +125,7 @@ export function PublicPassportPage({ studentId }: { studentId: string }) {
 
   const displayHash = verificationHash
     ? `${verificationHash.slice(0, 16)}...${verificationHash.slice(-8)}`
-    : 'Computing SHA-256 digest...';
+    : 'Computing verification seal...';
 
   return (
     <div className="min-h-screen bg-ink-50 dark:bg-ink-950 print:bg-white py-8 px-4 sm:px-6 lg:px-8 transition-colors">
@@ -250,7 +250,7 @@ export function PublicPassportPage({ studentId }: { studentId: string }) {
           </div>
         </div>
 
-        {/* Cryptographic SHA-256 Ledger Banner */}
+        {/* Cryptographic Ledger Banner */}
         <div className="mt-6 p-4 rounded-2xl bg-gradient-to-r from-ink-900 to-ink-950 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="h-9 w-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center flex-shrink-0">
@@ -261,7 +261,7 @@ export function PublicPassportPage({ studentId }: { studentId: string }) {
                 Tamper-Proof Ledger Seal
               </div>
               <div className="font-mono text-xs text-ink-200 truncate max-w-sm sm:max-w-md">
-                SHA-256: {displayHash}
+                Verification ID: {displayHash}
               </div>
             </div>
           </div>
@@ -439,7 +439,7 @@ export function PublicPassportPage({ studentId }: { studentId: string }) {
             <div>
               <div className="font-bold text-ink-900 uppercase tracking-widest text-[11px]">EvidentX Protocol Attestation</div>
               <div className="text-[10px] text-ink-600 mt-1">Cryptographically sealed credential for {student.name} ({student.program}, {student.university})</div>
-              <div className="font-mono text-[9px] text-ink-500 mt-0.5">SHA-256 Fingerprint: {verificationHash}</div>
+              <div className="font-mono text-[9px] text-ink-500 mt-0.5">Verification Seal: {verificationHash}</div>
             </div>
             <div className="text-right">
               <div className="text-[10px] text-ink-500">Issued & Certified via EvidentX</div>
@@ -469,7 +469,7 @@ export function PublicPassportPage({ studentId }: { studentId: string }) {
                 </div>
                 <div>
                   <h3 className="font-display font-bold text-ink-900 dark:text-white text-base">Cryptographic Ledger Verification</h3>
-                  <p className="text-xs text-ink-500 dark:text-[#8b949e]">Immutable SHA-256 Digest Verification</p>
+                  <p className="text-xs text-ink-500 dark:text-[#8b949e]">Immutable Digest Verification</p>
                 </div>
               </div>
               <button onClick={() => setShowInspector(false)} className="p-1 rounded-xl text-ink-400 hover:bg-ink-100 dark:hover:bg-[#21262d] dark:hover:text-[#c9d1d9]">
@@ -487,7 +487,7 @@ export function PublicPassportPage({ studentId }: { studentId: string }) {
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[10px] font-bold uppercase text-ink-400 dark:text-[#8b949e]">
-                    64-Character SHA-256 Passport Signature
+                    Cryptographic Passport Signature
                   </span>
                   <button
                     onClick={handleCopyHash}
@@ -519,7 +519,7 @@ export function PublicPassportPage({ studentId }: { studentId: string }) {
               {photoHash && (
                 <div className="p-3 rounded-xl bg-ink-50 dark:bg-[#0d1117] border border-ink-200 dark:border-[#30363d]">
                   <div className="flex items-center justify-between text-[10px] font-bold uppercase text-ink-400 dark:text-[#8b949e] mb-1">
-                    <span>Student Photograph Asset Digest (SHA-256)</span>
+                    <span>Student Photograph Asset Seal</span>
                     <span className="text-emerald-700 dark:text-emerald-300 font-bold flex items-center gap-1">
                       <CheckCircle2 className="h-3 w-3 text-emerald-600 dark:text-emerald-400" /> Tamper-Proof Headshot
                     </span>

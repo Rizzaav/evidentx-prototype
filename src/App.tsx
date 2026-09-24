@@ -46,6 +46,9 @@ const OrgDashboardPage = lazy(() =>
 const CreateOpportunityPage = lazy(() =>
   import('@/pages/CreateOpportunityPage').then((m) => ({ default: m.CreateOpportunityPage }))
 );
+const VerificationQueuePage = lazy(() =>
+  import('@/pages/VerificationQueuePage').then((m) => ({ default: m.VerificationQueuePage }))
+);
 const CandidateMatchingPage = lazy(() =>
   import('@/pages/CandidateMatchingPage').then((m) => ({ default: m.CandidateMatchingPage }))
 );
@@ -221,6 +224,8 @@ function renderStudent(seg: string[]): React.ReactNode {
 function renderOrg(seg: string[]): React.ReactNode {
   // /org/dashboard
   if (seg[1] === 'dashboard' || !seg[1]) return <OrgDashboardPage />;
+  // /org/verifications
+  if (seg[1] === 'verifications') return <VerificationQueuePage />;
   // /org/create
   if (seg[1] === 'create') return <CreateOpportunityPage />;
   // /org/candidates

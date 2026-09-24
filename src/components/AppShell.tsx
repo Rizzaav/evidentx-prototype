@@ -19,6 +19,7 @@ import {
   Search,
   Brain,
   Building2,
+  ShieldCheck,
 } from 'lucide-react';
 import { useRouter } from '@/lib/router';
 import { Logo, LogoMark } from '@/components/Logo';
@@ -43,8 +44,9 @@ const STUDENT_NAV: NavItem[] = [
 
 const ORG_NAV: NavItem[] = [
   { label: 'Organization Dashboard', path: '/org/dashboard', icon: <LayoutDashboard className="h-4 w-4" /> },
-  { label: 'Create Opportunity', path: '/org/create', icon: <PlusCircle className="h-4 w-4" /> },
+  { label: 'Verification Hub (HITL)', path: '/org/verifications', icon: <ShieldCheck className="h-4 w-4" /> },
   { label: 'Candidate Matching', path: '/org/candidates', icon: <Users className="h-4 w-4" /> },
+  { label: 'Create Opportunity', path: '/org/create', icon: <PlusCircle className="h-4 w-4" /> },
 ];
 
 const TEAM_NAV: NavItem[] = [

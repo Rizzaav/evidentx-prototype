@@ -59,7 +59,7 @@ export function CandidateAiDossier({ student, opportunity }: CandidateAiDossierP
     `What are ${student.name.split(' ')[0]}'s strongest verified projects?`,
     `How does their code prove proficiency for ${opportunity ? opportunity.title : 'this role'}?`,
     `Are there any critical skill gaps or missing credentials?`,
-    `Explain the cryptographic SHA-256 integrity of their evidence.`,
+    `Explain the evidence verification and tamper-evident integrity seal.`,
   ];
 
   // Auto-generate candidate summary on load or when student changes
@@ -310,7 +310,7 @@ export function CandidateAiDossier({ student, opportunity }: CandidateAiDossierP
                   <span className="font-semibold text-indigo-900">Evaluation Pillars:</span>
                   <span className="bg-indigo-50 text-indigo-800 px-2 py-0.5 rounded-md font-medium">Code Artifacts</span>
                   <span className="bg-indigo-50 text-indigo-800 px-2 py-0.5 rounded-md font-medium">Issuer Integrity</span>
-                  <span className="bg-indigo-50 text-indigo-800 px-2 py-0.5 rounded-md font-medium">SHA-256 Non-Repudiation</span>
+                  <span className="bg-indigo-50 text-indigo-800 px-2 py-0.5 rounded-md font-medium">Tamper-Evident Audit</span>
                   {opportunity && (
                     <span className="bg-brand-50 text-brand-800 px-2 py-0.5 rounded-md font-medium ml-auto">
                       Aligned for {opportunity.title}

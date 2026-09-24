@@ -588,7 +588,7 @@ export function CandidateMatchingPage({ opportunityId }: { opportunityId?: strin
                         </span>
                         <span className="inline-flex items-center gap-1">
                           <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                          SHA-256 Attested
+                          Evidence-Backed
                         </span>
                       </div>
                     </div>
